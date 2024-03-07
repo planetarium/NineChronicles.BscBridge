@@ -1,0 +1,35 @@
+{
+    "compilerOptions": {
+        "strict": true,
+        "strictNullChecks": true,
+        "esModuleInterop": true,
+        "skipLibCheck": true,
+        "target": "es2020",
+        "module": "commonjs",
+        "lib": [
+            "es2020"
+        ],
+        "allowSyntheticDefaultImports": true,
+        "moduleResolution": "node",
+        "outDir": "dist",
+        "paths": {
+            "@trufflesuite/web3-provider-engine": [
+                "./node_modules/@types/web3-provider-engine"
+            ],
+            "web3/providers": [
+                "./types/web3/providers"
+            ],
+            "web3-core-promievent": [
+                "./types/web3-core-promievent"
+            ],
+        },
+    },
+    "include": [
+        "src",
+        "test",
+        "scripts"
+    ],
+    "exclude": [
+        "node_modules"
+    ]
+}

@@ -1,0 +1,28 @@
+name: build bsc bridge
+on:
+  push:
+    paths:
+    - bridge/**/*
+
+  pull_request:
+    paths:
+    - bridge/**/*
+
+jobs:
+  build-bridge:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 20
+      - uses: actions/cache@v2
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+      - run: yarn install
+        working-directory: ./bridge
+      - run: yarn prettier --check src test
+        working-directory: ./bridge

@@ -1,0 +1,11 @@
+on: push
+name: push docker image
+jobs:
+  build_and_push:
+    uses: planetarium/.github/.github/workflows/push_docker_image.yaml@5ae2947dad6f0082f0a5dddba61ff54e16b3dee6
+    with:
+      repository: 9c-bsc-bridge
+      working_directory: bridge
+    secrets:
+      docker_username: ${{ secrets.DOCKER_USERNAME }}
+      docker_access_token: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}

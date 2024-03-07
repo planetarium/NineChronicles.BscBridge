@@ -1,0 +1,140 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`EthereumBurnEventObserver notify pagerduty 9c transfer error message - snapshot 1`] = `
+Array [
+  Array [
+    "Unexpected error during unwrapping NCG",
+    Object {
+      "amountString": "1.00",
+      "errorMessage": "Error: mockNcgTransfer.transfer error",
+      "sender": "0x2734048eC2892d111b4fbAB224400847544FC872",
+      "transactionHash": "TX-ID",
+      "user9cAddress": "0x6d29f9923C86294363e59BAaA46FcBc37Ee5aE2e",
+    },
+  ],
+]
+`;
+
+exports[`EthereumBurnEventObserver notify slack/opensearch 9c transfer error message - snapshot 1`] = `
+Array [
+  Array [
+    "error",
+    Object {
+      "amount": 1,
+      "cause": "Error: mockNcgTransfer.transfer error",
+      "content": "wNCG -> NCG request failure",
+      "ethereumTxId": "TX-ID",
+      "planetName": "odin",
+      "recipient": "0x6d29f9923C86294363e59BAaA46FcBc37Ee5aE2e",
+      "sender": "0x2734048eC2892d111b4fbAB224400847544FC872",
+    },
+  ],
+]
+`;
+
+exports[`EthereumBurnEventObserver notify slack/opensearch 9c transfer error message - snapshot 2`] = `
+Array [
+  Array [
+    Object {
+      "attachments": Array [
+        Object {
+          "author_name": "Bridge Error",
+          "color": "#ff0033",
+          "fallback": "wNCG 0x2734048eC2892d111b4fbAB224400847544FC872 → NCG 0x6d29f9923C86294363e59BAaA46FcBc37Ee5aE2e failed",
+          "fields": Array [
+            Object {
+              "title": "Ethereum transaction",
+              "value": "https://ropsten.etherscan.io/tx/TX-ID",
+            },
+            Object {
+              "title": "sender (Ethereum)",
+              "value": "0x2734048eC2892d111b4fbAB224400847544FC872",
+            },
+            Object {
+              "title": "recipient (NineChronicles)",
+              "value": "0x6d29f9923C86294363e59BAaA46FcBc37Ee5aE2e",
+            },
+            Object {
+              "title": "amount",
+              "value": "1.00",
+            },
+            Object {
+              "title": "Planet Name",
+              "value": "odin",
+            },
+            Object {
+              "title": "error",
+              "value": "Error: mockNcgTransfer.transfer error",
+            },
+          ],
+        },
+      ],
+      "text": "wNCG → NCG event failed. @gamefi-be",
+    },
+  ],
+]
+`;
+
+exports[`EthereumBurnEventObserver notify slack/opensearch message - snapshot 1`] = `
+Array [
+  Array [
+    "info",
+    Object {
+      "amount": 1,
+      "content": "wNCG -> NCG request success",
+      "ethereumTxId": "TX-ID",
+      "libplanetTxId": "TX-HASH",
+      "planetName": "odin",
+      "recipient": "0x6d29f9923C86294363e59BAaA46FcBc37Ee5aE2e",
+      "sender": "0x2734048eC2892d111b4fbAB224400847544FC872",
+    },
+  ],
+]
+`;
+
+exports[`EthereumBurnEventObserver notify slack/opensearch message - snapshot 2`] = `
+Array [
+  Array [
+    Object {
+      "attachments": Array [
+        Object {
+          "author_name": "Bridge Event",
+          "color": "#42f5aa",
+          "fallback": "wNCG 0x2734048eC2892d111b4fbAB224400847544FC872 → NCG 0x6d29f9923C86294363e59BAaA46FcBc37Ee5aE2e",
+          "fields": Array [
+            Object {
+              "title": "9c network transaction",
+              "value": "https://explorer.libplanet.io/9c-internal/transaction?TX-HASH",
+            },
+            Object {
+              "title": "Ethereum network transaction",
+              "value": "https://ropsten.etherscan.io/tx/TX-ID",
+            },
+            Object {
+              "title": "sender (Ethereum)",
+              "value": "0x2734048eC2892d111b4fbAB224400847544FC872",
+            },
+            Object {
+              "title": "recipient (NineChronicles)",
+              "value": "0x6d29f9923C86294363e59BAaA46FcBc37Ee5aE2e",
+            },
+            Object {
+              "title": "amount",
+              "value": "1.00",
+            },
+            Object {
+              "title": "Planet-Name",
+              "value": "odin",
+            },
+            Object {
+              "title": "Not Multi-Planet Request Type",
+              "value": "This Transfer Request is not a multi-planet request type.",
+            },
+          ],
+        },
+      ],
+      "text": "wNCG → NCG event occurred.",
+    },
+  ],
+]
+`;
