@@ -79,8 +79,6 @@ export class BscBurnEventObserver
       });
     }
 
-    console.log("===============events", events[0]);
-
     for (const { returnValues, transactionHash, blockHash } of events) {
       const {
         _sender: sender,
