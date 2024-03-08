@@ -5,13 +5,13 @@ import { TransactionLocation } from "../types/transaction-location";
 import { ethers } from "ethers";
 
 export class BscBurnEventMonitor extends TriggerableMonitor<EventData> {
-  private readonly _provider: ethers.providers.FallbackProvider;
+  private readonly _provider: ethers.providers.JsonRpcProvider;
   private readonly _contract: ethers.Contract;
   private readonly _contractDescription: ContractDescription;
   private readonly _confirmations: number;
 
   constructor(
-    provider: ethers.providers.FallbackProvider,
+    provider: ethers.providers.JsonRpcProvider,
     contractDescription: ContractDescription,
     latestTransactionLocation: TransactionLocation | null,
     confirmations: number

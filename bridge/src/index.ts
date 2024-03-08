@@ -283,18 +283,7 @@ process.on("uncaughtException", console.error);
   const kmsAddress = kmsAddresses[0];
   console.log(kmsAddress);
 
-  const providerMain = new ethers.providers.JsonRpcProvider(KMS_PROVIDER_URL);
-  // const providerSub = new ethers.providers.JsonRpcProvider(
-  //     KMS_PROVIDER_SUB_URL
-  // );
-
-  const provider = new ethers.providers.FallbackProvider(
-    [
-      { provider: providerMain, priority: 1, weight: 2 },
-      // { provider: providerSub, priority: 2, weight: 1 },
-    ],
-    1
-  );
+  const provider = new ethers.providers.JsonRpcProvider(KMS_PROVIDER_URL);
 
   const signer = new KMSNCGSigner(KMS_PROVIDER_REGION, KMS_PROVIDER_KEY_ID, {
     accessKeyId: KMS_PROVIDER_AWS_ACCESSKEY,
