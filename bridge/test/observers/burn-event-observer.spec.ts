@@ -158,7 +158,7 @@ describe(BscBurnEventObserver.name, () => {
         events: [],
       });
 
-      expect(mockMonitorStateStore.store).toHaveBeenCalledWith("ethereum", {
+      expect(mockMonitorStateStore.store).toHaveBeenCalledWith("bsc", {
         blockHash: "BLOCK-HASH",
         txId: null,
       });
@@ -205,7 +205,7 @@ describe(BscBurnEventObserver.name, () => {
         events,
       });
 
-      expect(mockMonitorStateStore.store).toHaveBeenCalledWith("ethereum", {
+      expect(mockMonitorStateStore.store).toHaveBeenCalledWith("bsc", {
         blockHash: "BLOCK-HASH",
         txId: "TX-D",
       });
@@ -213,7 +213,7 @@ describe(BscBurnEventObserver.name, () => {
       expect(mockExchangeHistoryStore.put.mock.calls).toEqual([
         [
           {
-            network: "ethereum",
+            network: "bsc",
             tx_id: "TX-A",
             sender: "0x2734048eC2892d111b4fbAB224400847544FC872",
             recipient: ncgRecipient,
@@ -223,7 +223,7 @@ describe(BscBurnEventObserver.name, () => {
         ],
         [
           {
-            network: "ethereum",
+            network: "bsc",
             tx_id: "TX-B",
             sender: "0x2734048eC2892d111b4fbAB224400847544FC872",
             recipient: ncgRecipient,
@@ -233,7 +233,7 @@ describe(BscBurnEventObserver.name, () => {
         ],
         [
           {
-            network: "ethereum",
+            network: "bsc",
             tx_id: "TX-C",
             sender: "0x2734048eC2892d111b4fbAB224400847544FC872",
             recipient: ncgRecipient,
@@ -243,7 +243,7 @@ describe(BscBurnEventObserver.name, () => {
         ],
         [
           {
-            network: "ethereum",
+            network: "bsc",
             tx_id: "TX-D",
             sender: "0x2734048eC2892d111b4fbAB224400847544FC872",
             recipient: ncgRecipient,
@@ -289,7 +289,7 @@ describe(BscBurnEventObserver.name, () => {
         events,
       });
 
-      expect(mockMonitorStateStore.store).toHaveBeenCalledWith("ethereum", {
+      expect(mockMonitorStateStore.store).toHaveBeenCalledWith("bsc", {
         blockHash: "BLOCK-HASH",
         txId: "TX-ODIN-D",
       });
@@ -297,7 +297,7 @@ describe(BscBurnEventObserver.name, () => {
       expect(mockExchangeHistoryStore.put.mock.calls).toEqual([
         [
           {
-            network: "ethereum",
+            network: "bsc",
             tx_id: "TX-ODIN-A",
             sender: "0x2734048eC2892d111b4fbAB224400847544FC872",
             recipient: ncgRecipient,
@@ -307,7 +307,7 @@ describe(BscBurnEventObserver.name, () => {
         ],
         [
           {
-            network: "ethereum",
+            network: "bsc",
             tx_id: "TX-ODIN-B",
             sender: "0x2734048eC2892d111b4fbAB224400847544FC872",
             recipient: ncgRecipient,
@@ -317,7 +317,7 @@ describe(BscBurnEventObserver.name, () => {
         ],
         [
           {
-            network: "ethereum",
+            network: "bsc",
             tx_id: "TX-ODIN-C",
             sender: "0x2734048eC2892d111b4fbAB224400847544FC872",
             recipient: ncgRecipient,
@@ -327,7 +327,7 @@ describe(BscBurnEventObserver.name, () => {
         ],
         [
           {
-            network: "ethereum",
+            network: "bsc",
             tx_id: "TX-ODIN-D",
             sender: "0x2734048eC2892d111b4fbAB224400847544FC872",
             recipient: ncgRecipient,
@@ -383,7 +383,7 @@ describe(BscBurnEventObserver.name, () => {
         events,
       });
 
-      expect(mockMonitorStateStore.store).toHaveBeenCalledWith("ethereum", {
+      expect(mockMonitorStateStore.store).toHaveBeenCalledWith("bsc", {
         blockHash: "BLOCK-HASH",
         txId: "TX-HEIMDALL-D",
       });
@@ -391,7 +391,7 @@ describe(BscBurnEventObserver.name, () => {
       expect(mockExchangeHistoryStore.put.mock.calls).toEqual([
         [
           {
-            network: "ethereum",
+            network: "bsc",
             tx_id: "TX-HEIMDALL-A",
             sender: "0x2734048eC2892d111b4fbAB224400847544FC872",
             recipient: ncgRecipient,
@@ -401,7 +401,7 @@ describe(BscBurnEventObserver.name, () => {
         ],
         [
           {
-            network: "ethereum",
+            network: "bsc",
             tx_id: "TX-HEIMDALL-B",
             sender: "0x2734048eC2892d111b4fbAB224400847544FC872",
             recipient: ncgRecipient,
@@ -411,7 +411,7 @@ describe(BscBurnEventObserver.name, () => {
         ],
         [
           {
-            network: "ethereum",
+            network: "bsc",
             tx_id: "TX-HEIMDALL-C",
             sender: "0x2734048eC2892d111b4fbAB224400847544FC872",
             recipient: ncgRecipient,
@@ -421,7 +421,7 @@ describe(BscBurnEventObserver.name, () => {
         ],
         [
           {
-            network: "ethereum",
+            network: "bsc",
             tx_id: "TX-HEIMDALL-D",
             sender: "0x2734048eC2892d111b4fbAB224400847544FC872",
             recipient: ncgRecipient,

@@ -5,7 +5,7 @@ Object {
   "attachments": Array [
     Object {
       "author_name": "Bridge Event",
-      "color": "#42f5aa",
+      "color": "#f5b342",
       "fallback": "wNCG 0xDac65eCE9CB3E7a538773e08DE31F973233F064f → NCG 0xCbfC996ad185c61a031f40CeeE80a055e6D83005",
       "fields": Array [
         Object {
@@ -13,11 +13,11 @@ Object {
           "value": "https://explorer.libplanet.io/9c-internal/transaction?3409cdbaa24ec6f7c8d2c0f636325a2b2e9611e5e6df5c593cfcd299860d8043",
         },
         Object {
-          "title": "Ethereum network transaction",
-          "value": "https://ropsten.etherscan.io/tx/0x9360cd40682a91a71f0afbfac3dd381866cdb319dc01c13531dfe648f8a28bc7",
+          "title": "Binance Smart Chain network transaction",
+          "value": "https://testnet.bscscan.com/tx/0x9360cd40682a91a71f0afbfac3dd381866cdb319dc01c13531dfe648f8a28bc7",
         },
         Object {
-          "title": "sender (Ethereum)",
+          "title": "sender (bsc)",
           "value": "0xDac65eCE9CB3E7a538773e08DE31F973233F064f",
         },
         Object {
@@ -32,10 +32,14 @@ Object {
           "title": "Planet-Name",
           "value": "heimdall",
         },
+        Object {
+          "title": "Network",
+          "value": "Binance Smart Chain",
+        },
       ],
     },
   ],
-  "text": "wNCG → NCG event occurred.",
+  "text": "[BSC] wNCG → NCG event occurred.",
 }
 `;
 
@@ -44,7 +48,7 @@ Object {
   "attachments": Array [
     Object {
       "author_name": "Bridge Event",
-      "color": "#42f5aa",
+      "color": "#f5b342",
       "fallback": "wNCG 0xDac65eCE9CB3E7a538773e08DE31F973233F064f → NCG 0xCbfC996ad185c61a031f40CeeE80a055e6D83005",
       "fields": Array [
         Object {
@@ -52,11 +56,11 @@ Object {
           "value": "https://explorer.libplanet.io/9c-internal/transaction?3409cdbaa24ec6f7c8d2c0f636325a2b2e9611e5e6df5c593cfcd299860d8043",
         },
         Object {
-          "title": "Ethereum network transaction",
-          "value": "https://ropsten.etherscan.io/tx/0x9360cd40682a91a71f0afbfac3dd381866cdb319dc01c13531dfe648f8a28bc7",
+          "title": "Binance Smart Chain network transaction",
+          "value": "https://testnet.bscscan.com/tx/0x9360cd40682a91a71f0afbfac3dd381866cdb319dc01c13531dfe648f8a28bc7",
         },
         Object {
-          "title": "sender (Ethereum)",
+          "title": "sender (bsc)",
           "value": "0xDac65eCE9CB3E7a538773e08DE31F973233F064f",
         },
         Object {
@@ -72,12 +76,16 @@ Object {
           "value": "odin",
         },
         Object {
+          "title": "Network",
+          "value": "Binance Smart Chain",
+        },
+        Object {
           "title": "Not Multi-Planet Request Type",
           "value": "This Transfer Request is not a multi-planet request type.",
         },
       ],
     },
   ],
-  "text": "wNCG → NCG event occurred.",
+  "text": "[BSC] wNCG → NCG event occurred.",
 }
 `;

@@ -7,7 +7,7 @@
     "start": "npx tsx ./src/index.ts",
     "test": "run-s test:*",
     "test:aws": "jest --config=./aws.jest.config.js",
-    "test:bridge": "jest --config=./bridge.jest.config.js test/observers/nine-chronicles.spec.ts",
+    "test:bridge": "jest --config=./bridge.jest.config.js",
     "coverage": "jest --coverage --config=./bridge.jest.config.js",
     "lint": "eslint src --ext .ts",
     "build": "tsc",

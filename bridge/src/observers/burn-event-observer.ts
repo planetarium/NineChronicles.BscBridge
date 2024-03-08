@@ -120,7 +120,7 @@ export class BscBurnEventObserver
       }
 
       await this._exchangeHistoryStore.put({
-        network: "ethereum",
+        network: "bsc",
         tx_id: transactionHash,
         sender,
         recipient: user9cAddress,

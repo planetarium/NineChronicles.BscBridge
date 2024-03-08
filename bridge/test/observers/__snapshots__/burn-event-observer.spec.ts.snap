@@ -1,6 +1,6 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`EthereumBurnEventObserver notify pagerduty 9c transfer error message - snapshot 1`] = `
+exports[`BscBurnEventObserver notify pagerduty 9c transfer error message - snapshot 1`] = `
 Array [
   Array [
     "Unexpected error during unwrapping NCG",
@@ -15,7 +15,7 @@ Array [
 ]
 `;
 
-exports[`EthereumBurnEventObserver notify slack/opensearch 9c transfer error message - snapshot 1`] = `
+exports[`BscBurnEventObserver notify slack/opensearch 9c transfer error message - snapshot 1`] = `
 Array [
   Array [
     "error",
@@ -24,6 +24,7 @@ Array [
       "cause": "Error: mockNcgTransfer.transfer error",
       "content": "wNCG -> NCG request failure",
       "ethereumTxId": "TX-ID",
+      "network": "BSC",
       "planetName": "odin",
       "recipient": "0x6d29f9923C86294363e59BAaA46FcBc37Ee5aE2e",
       "sender": "0x2734048eC2892d111b4fbAB224400847544FC872",
@@ -32,7 +33,7 @@ Array [
 ]
 `;
 
-exports[`EthereumBurnEventObserver notify slack/opensearch 9c transfer error message - snapshot 2`] = `
+exports[`BscBurnEventObserver notify slack/opensearch 9c transfer error message - snapshot 2`] = `
 Array [
   Array [
     Object {
@@ -43,11 +44,11 @@ Array [
           "fallback": "wNCG 0x2734048eC2892d111b4fbAB224400847544FC872 → NCG 0x6d29f9923C86294363e59BAaA46FcBc37Ee5aE2e failed",
           "fields": Array [
             Object {
-              "title": "Ethereum transaction",
+              "title": "BSC transaction",
               "value": "https://ropsten.etherscan.io/tx/TX-ID",
             },
             Object {
-              "title": "sender (Ethereum)",
+              "title": "sender (bsc)",
               "value": "0x2734048eC2892d111b4fbAB224400847544FC872",
             },
             Object {
@@ -69,13 +70,13 @@ Array [
           ],
         },
       ],
-      "text": "wNCG → NCG event failed. @gamefi-be",
+      "text": "[BSC] wNCG → NCG event failed. @gamefi-be",
     },
   ],
 ]
 `;
 
-exports[`EthereumBurnEventObserver notify slack/opensearch message - snapshot 1`] = `
+exports[`BscBurnEventObserver notify slack/opensearch message - snapshot 1`] = `
 Array [
   Array [
     "info",
@@ -84,6 +85,7 @@ Array [
       "content": "wNCG -> NCG request success",
       "ethereumTxId": "TX-ID",
       "libplanetTxId": "TX-HASH",
+      "network": "BSC",
       "planetName": "odin",
       "recipient": "0x6d29f9923C86294363e59BAaA46FcBc37Ee5aE2e",
       "sender": "0x2734048eC2892d111b4fbAB224400847544FC872",
@@ -92,14 +94,14 @@ Array [
 ]
 `;
 
-exports[`EthereumBurnEventObserver notify slack/opensearch message - snapshot 2`] = `
+exports[`BscBurnEventObserver notify slack/opensearch message - snapshot 2`] = `
 Array [
   Array [
     Object {
       "attachments": Array [
         Object {
           "author_name": "Bridge Event",
-          "color": "#42f5aa",
+          "color": "#f5b342",
           "fallback": "wNCG 0x2734048eC2892d111b4fbAB224400847544FC872 → NCG 0x6d29f9923C86294363e59BAaA46FcBc37Ee5aE2e",
           "fields": Array [
             Object {
@@ -107,11 +109,11 @@ Array [
               "value": "https://explorer.libplanet.io/9c-internal/transaction?TX-HASH",
             },
             Object {
-              "title": "Ethereum network transaction",
+              "title": "Binance Smart Chain network transaction",
               "value": "https://ropsten.etherscan.io/tx/TX-ID",
             },
             Object {
-              "title": "sender (Ethereum)",
+              "title": "sender (bsc)",
               "value": "0x2734048eC2892d111b4fbAB224400847544FC872",
             },
             Object {
@@ -127,13 +129,17 @@ Array [
               "value": "odin",
             },
             Object {
+              "title": "Network",
+              "value": "Binance Smart Chain",
+            },
+            Object {
               "title": "Not Multi-Planet Request Type",
               "value": "This Transfer Request is not a multi-planet request type.",
             },
           ],
         },
       ],
-      "text": "wNCG → NCG event occurred.",
+      "text": "[BSC] wNCG → NCG event occurred.",
     },
   ],
 ]
