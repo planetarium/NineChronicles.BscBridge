@@ -78,7 +78,7 @@ export class BscBurnEventMonitor extends TriggerableMonitor<EventData> {
   }
 
   protected async getEvents(blockIndex: number) {
-    const BURN_EVENT_SIG = "SendToLibPlanet(address,uint256,bytes32)";
+    const BURN_EVENT_SIG = "SentToLibPlanet(address,uint256,bytes32)";
 
     const filter = {
       address: this._contractDescription.address,

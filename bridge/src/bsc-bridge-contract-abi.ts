@@ -4,12 +4,7 @@ export const bscBridgeContractAbi: ContractInterface = [
   {
     anonymous: false,
     inputs: [
-      {
-        indexed: false,
-        internalType: "uint8",
-        name: "version",
-        type: "uint8",
-      },
+      { indexed: false, internalType: "uint8", name: "version", type: "uint8" },
     ],
     name: "Initialized",
     type: "event",
@@ -23,12 +18,7 @@ export const bscBridgeContractAbi: ContractInterface = [
         name: "_from",
         type: "address",
       },
-      {
-        indexed: true,
-        internalType: "address",
-        name: "_to",
-        type: "address",
-      },
+      { indexed: true, internalType: "address", name: "_to", type: "address" },
     ],
     name: "OperatorChanged",
     type: "event",
@@ -48,25 +38,15 @@ export const bscBridgeContractAbi: ContractInterface = [
         name: "_amount",
         type: "uint256",
       },
-      {
-        indexed: false,
-        internalType: "bytes32",
-        name: "_to",
-        type: "bytes32",
-      },
+      { indexed: false, internalType: "bytes32", name: "_to", type: "bytes32" },
     ],
-    name: "SendToLibPlanet",
+    name: "SentToLibPlanet",
     type: "event",
   },
   {
     anonymous: false,
     inputs: [
-      {
-        indexed: true,
-        internalType: "address",
-        name: "_to",
-        type: "address",
-      },
+      { indexed: true, internalType: "address", name: "_to", type: "address" },
       {
         indexed: false,
         internalType: "uint256",
@@ -74,19 +54,13 @@ export const bscBridgeContractAbi: ContractInterface = [
         type: "uint256",
       },
     ],
-    name: "TransferAssetByOperator",
+    name: "TransferredAssetByOperator",
     type: "event",
   },
   {
     inputs: [],
     name: "OPERATOR",
-    outputs: [
-      {
-        internalType: "address",
-        name: "",
-        type: "address",
-      },
-    ],
+    outputs: [{ internalType: "address", name: "", type: "address" }],
     stateMutability: "view",
     type: "function",
   },
@@ -94,23 +68,13 @@ export const bscBridgeContractAbi: ContractInterface = [
     inputs: [],
     name: "TRANSFER_TOKEN",
     outputs: [
-      {
-        internalType: "contract IERC20Upgradeable",
-        name: "",
-        type: "address",
-      },
+      { internalType: "contract IERC20Upgradeable", name: "", type: "address" },
     ],
     stateMutability: "view",
     type: "function",
   },
   {
-    inputs: [
-      {
-        internalType: "address",
-        name: "to",
-        type: "address",
-      },
-    ],
+    inputs: [{ internalType: "address", name: "to", type: "address" }],
     name: "changeOperator",
     outputs: [],
     stateMutability: "nonpayable",
@@ -123,11 +87,7 @@ export const bscBridgeContractAbi: ContractInterface = [
         name: "_transferToken",
         type: "address",
       },
-      {
-        internalType: "address",
-        name: "_operator",
-        type: "address",
-      },
+      { internalType: "address", name: "_operator", type: "address" },
     ],
     name: "initialize",
     outputs: [],
@@ -136,16 +96,8 @@ export const bscBridgeContractAbi: ContractInterface = [
   },
   {
     inputs: [
-      {
-        internalType: "uint256",
-        name: "amount",
-        type: "uint256",
-      },
-      {
-        internalType: "bytes32",
-        name: "to",
-        type: "bytes32",
-      },
+      { internalType: "uint256", name: "amount", type: "uint256" },
+      { internalType: "bytes32", name: "to", type: "bytes32" },
     ],
     name: "sendToLibPlanet",
     outputs: [],
@@ -155,28 +107,14 @@ export const bscBridgeContractAbi: ContractInterface = [
   {
     inputs: [],
     name: "totalTransferAmount",
-    outputs: [
-      {
-        internalType: "uint256",
-        name: "",
-        type: "uint256",
-      },
-    ],
+    outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
     stateMutability: "view",
     type: "function",
   },
   {
     inputs: [
-      {
-        internalType: "uint256",
-        name: "amount",
-        type: "uint256",
-      },
-      {
-        internalType: "address",
-        name: "to",
-        type: "address",
-      },
+      { internalType: "uint256", name: "amount", type: "uint256" },
+      { internalType: "address", name: "to", type: "address" },
     ],
     name: "transferAssetByOperator",
     outputs: [],
@@ -184,21 +122,9 @@ export const bscBridgeContractAbi: ContractInterface = [
     type: "function",
   },
   {
-    inputs: [
-      {
-        internalType: "address",
-        name: "_user",
-        type: "address",
-      },
-    ],
+    inputs: [{ internalType: "address", name: "_user", type: "address" }],
     name: "transferredTokenBalance",
-    outputs: [
-      {
-        internalType: "uint256",
-        name: "",
-        type: "uint256",
-      },
-    ],
+    outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
     stateMutability: "view",
     type: "function",
   },
