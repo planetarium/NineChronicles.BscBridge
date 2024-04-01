@@ -2664,10 +2664,10 @@
     "@planetarium/sign" "^0.0.2"
     asn1js "^3.0.5"
 
-"@planetarium/account@2.4.0":
-  version "2.4.0"
-  resolved "https://registry.yarnpkg.com/@planetarium/account/-/account-2.4.0.tgz#7f30eb92a28c6ce63fccf3fe18c920906272b300"
-  integrity sha512-P7tGmh8L4S8ZedXa7l0bodIoCh9Ml6E25Od4d2kTVYvK0o1TE6YYzMYoAI80B9ZLjfVbI5ZIZCoapu24rAGm8w==
+"@planetarium/account@4.0.6":
+  version "4.0.6"
+  resolved "https://registry.yarnpkg.com/@planetarium/account/-/account-4.0.6.tgz#f3bb09dafc4af59080203896b4c5f78da6f951c1"
+  integrity sha512-+papVvf4L4A+UTV4LhlRb6VFjqitsESCeoRfGiR7hIkvrTpGHgjxrkLiAtk3dx6w9jjtFP5uav9d3vw4hh4dmw==
   dependencies:
     "@noble/hashes" "^1.2.0"
     "@noble/secp256k1" "^1.7.1"
@@ -2711,10 +2711,10 @@
     bencodex "^0.1.2"
     buffer "^6.0.3"
 
-"@planetarium/tx@2.4.0":
-  version "2.4.0"
-  resolved "https://registry.yarnpkg.com/@planetarium/tx/-/tx-2.4.0.tgz#ee36fdfa8acd5ea95e11556c78ec390f60ffb908"
-  integrity sha512-g31KBglSr1z4wc5MYXQlWCz048p2RzAPDe1X1fUfKNIvEcW7jyNegggkIuKoFaKa2z8QMkxRJWd8AwgSXEB9rQ==
+"@planetarium/tx@4.0.6":
+  version "4.0.6"
+  resolved "https://registry.yarnpkg.com/@planetarium/tx/-/tx-4.0.6.tgz#fee45c5b95b07c87ab9bfce36790077a9dc0cddf"
+  integrity sha512-haFVkGfyIxZjbi1GNcfS+I58mZD0zwgFz6Ib8Xa5uD31XJlg0/vdOf6D8TCbvGkljjGFv0l+D4Mf/bmeUnYEWg==
   dependencies:
     "@planetarium/bencodex" "^0.2.2"
 
