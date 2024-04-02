@@ -7,6 +7,7 @@ import { KMSNCGSigner } from "../src/kms-ncg-signer";
 import { isAddress } from "web3-utils";
 import { Command } from "commander";
 import readline from "readline";
+import { WebClient } from "@slack/web-api";
 
 async function transfer() {
   const program = new Command();
@@ -29,9 +30,22 @@ async function transfer() {
 
 transfer();
 
+async function sendSlackMessage(text: string): Promise<void> {
+  const slackWebClient = new WebClient(process.env.SLACK_WEB_TOKEN);
+  const slackChannel = process.env.SLACK_CHANNEL_NAME!;
+
+  await slackWebClient.chat.postMessage({
+    channel: slackChannel,
+    text,
+  });
+}
+
 async function transferNcg(user9cAddress: string, amount: string) {
   if (Number(amount) > 100000) {
     console.log("Cannot transfer over 100000 - Cancel transfer ...");
+    const slackMessageText = `Suspicious 100,000+ NCG mint attempt detected and aborted. ${process.env.FAILURE_SUBSCRIBERS}`;
+    await sendSlackMessage(slackMessageText);
+
     process.exit(1);
   }
 
@@ -43,6 +57,9 @@ async function transferNcg(user9cAddress: string, amount: string) {
   };
   if (!isValidAddress(user9cAddress)) {
     console.log("isValidAddress - Cancel transfer...");
+    const slackMessageText = `NCG mint attempt to invalid 9c address. (# ${user9cAddress}) detected and aborted. ${process.env.FAILURE_SUBSCRIBERS}`;
+    await sendSlackMessage(slackMessageText);
+
     process.exit(1);
   }
 
@@ -75,6 +92,8 @@ async function transferNcg(user9cAddress: string, amount: string) {
   const kmsAddresses = await kmsProvider.getAccounts();
   if (kmsAddresses.length != 1) {
     console.log("NineChronicles.BscBridge is supported only one address.");
+    const slackMessageText = `More than 1 KMS account found. Aborted ${process.env.FAILURE_SUBSCRIBERS}`;
+    await sendSlackMessage(slackMessageText);
     process.exit(1);
   }
   const kmsAddress = kmsAddresses[0];
@@ -98,6 +117,9 @@ async function transferNcg(user9cAddress: string, amount: string) {
     console.log(
       "KMS_PROVIDER_PUBLIC_KEY variable seems invalid because it doesn't match to address from KMS."
     );
+    const slackMessageText = `KMS_PROVIDER_PUBLIC_KEY variable seems invalid because it doesn't match to address from KMS. ${process.env.FAILURE_SUBSCRIBERS}`;
+    await sendSlackMessage(slackMessageText);
+
     process.exit(1);
   }
 
@@ -139,5 +161,11 @@ async function transferNcg(user9cAddress: string, amount: string) {
     );
 
     console.log("txId", txId);
+
+    const slackMessageText = `:ncg: NCG transferred from 9c-BSC bridge account sent.\n
+    user9cAddress: ${user9cAddress}\n
+    amount: ${amount.toString()}\n
+    txId: ${txId}`;
+    await sendSlackMessage(slackMessageText);
   });
 }
