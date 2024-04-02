@@ -21,8 +21,14 @@ async function transfer() {
     .description("transfer ( ad-hoc transfer )")
     .argument("<address>", "destination( 9c address )")
     .argument("<amount>", "amount( to transfer )")
-    .action(async (address: string, amount: string) => {
-      await transferNcg(address, amount);
+    .argument(
+      // optional argument planetName
+      "[planetName]",
+      "planetName(optional, default: odin)",
+      "odin"
+    )
+    .action(async (address: string, amount: string, planetName: string) => {
+      await transferNcg(address, amount, planetName);
     });
 
   program.parseAsync();
@@ -40,7 +46,19 @@ async function sendSlackMessage(text: string): Promise<void> {
   });
 }
 
-async function transferNcg(user9cAddress: string, amount: string) {
+async function transferNcg(
+  user9cAddress: string,
+  amount: string,
+  planetName: string
+) {
+  if (!["odin", "heimdall"].includes(planetName)) {
+    console.log(`Wrong planeName ${planetName} Cancel transfer ...`);
+    const slackMessageText = `Wrong planeName  ( ${planetName} ) inserted. ${process.env.FAILURE_SUBSCRIBERS}`;
+    await sendSlackMessage(slackMessageText);
+
+    process.exit(1);
+  }
+
   if (Number(amount) > 100000) {
     console.log("Cannot transfer over 100000 - Cancel transfer ...");
     const slackMessageText = `Suspicious 100,000+ NCG mint attempt detected and aborted. ${process.env.FAILURE_SUBSCRIBERS}`;
@@ -135,7 +153,7 @@ async function transferNcg(user9cAddress: string, amount: string) {
     "==========================================================================================================="
   );
   console.log(
-    `Are you trying to Transfer NCG. To: ${user9cAddress}, Amount: ${amount} ??`
+    `Are you trying to Transfer NCG. To: ${user9cAddress}, Amount: ${amount} , PlanetName: ${planetName} ??`
   );
   console.log('If Correct, Enter "yes", If not Enter anything');
 
@@ -152,12 +170,21 @@ async function transferNcg(user9cAddress: string, amount: string) {
       process.exit(1);
     }
 
-    console.log(`Transferring NCG to ${user9cAddress}, amount: ${amount}...`);
+    console.log(
+      `Transferring NCG to ${user9cAddress}, amount: ${amount}, PlanetName: ${planetName} ...`
+    );
+
+    const recipient =
+      planetName === "odin"
+        ? user9cAddress
+        : process.env.ODIN_TO_HEIMDALL_VALUT_ADDRESS!;
+
+    const memo = planetName === "odin" ? null : user9cAddress;
 
     const txId = await ncgKmsTransfer.transfer(
-      user9cAddress,
+      recipient,
       amount.toString(),
-      null
+      memo
     );
 
     console.log("txId", txId);
@@ -165,6 +192,7 @@ async function transferNcg(user9cAddress: string, amount: string) {
     const slackMessageText = `:ncg: NCG transferred from 9c-BSC bridge account sent.\n
     user9cAddress: ${user9cAddress}\n
     amount: ${amount.toString()}\n
+    planet: ${planetName}\n
     txId: ${txId}`;
     await sendSlackMessage(slackMessageText);
   });
