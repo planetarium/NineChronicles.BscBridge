@@ -21,15 +21,18 @@ async function transfer() {
     .description("transfer ( ad-hoc transfer )")
     .argument("<address>", "destination( 9c address )")
     .argument("<amount>", "amount( to transfer )")
-    .argument(
-      // optional argument planetName
-      "[planetName]",
-      "planetName(optional, default: odin)",
-      "odin"
-    )
-    .action(async (address: string, amount: string, planetName: string) => {
-      await transferNcg(address, amount, planetName);
-    });
+    .argument("<planetName>", "planetName")
+    .argument("<operator>", "operator who run this command")
+    .action(
+      async (
+        address: string,
+        amount: string,
+        planetName: string,
+        operator: string
+      ) => {
+        await transferNcg(address, amount, planetName, operator);
+      }
+    );
 
   program.parseAsync();
 }
@@ -49,7 +52,8 @@ async function sendSlackMessage(text: string): Promise<void> {
 async function transferNcg(
   user9cAddress: string,
   amount: string,
-  planetName: string
+  planetName: string,
+  operator: string
 ) {
   if (!["odin", "heimdall"].includes(planetName)) {
     console.log(`Wrong planeName ${planetName} Cancel transfer ...`);
@@ -189,7 +193,7 @@ async function transferNcg(
 
     console.log("txId", txId);
 
-    const slackMessageText = `:ncg: NCG transferred from 9c-BSC bridge account sent.\n
+    const slackMessageText = `:ncg: NCG transferred from 9c-BSC bridge account sent. Operator: ${operator}\n
     user9cAddress: ${user9cAddress}\n
     amount: ${amount.toString()}\n
     planet: ${planetName}\n
