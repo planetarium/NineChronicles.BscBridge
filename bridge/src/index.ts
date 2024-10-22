@@ -97,6 +97,7 @@ process.on("uncaughtException", console.error);
   const SLACK_WEB_TOKEN: string = Configuration.get("SLACK_WEB_TOKEN");
   const FAILURE_SUBSCRIBERS: string = Configuration.get("FAILURE_SUBSCRIBERS");
   const OPENSEARCH_ENDPOINT: string = Configuration.get("OPENSEARCH_ENDPOINT");
+  const OPENSEARCH_ENDPOINT_MIGRATION: string = Configuration.get("OPENSEARCH_ENDPOINT_MIGRATION");
   const OPENSEARCH_AUTH: string = Configuration.get("OPENSEARCH_AUTH");
   const OPENSEARCH_INDEX: string =
     Configuration.get("OPENSEARCH_INDEX", false) || "9c-eth-bridge";
@@ -244,6 +245,12 @@ process.on("uncaughtException", console.error);
     OPENSEARCH_INDEX
   );
 
+  const opensearchMigrationClient = new OpenSearchClient(
+    OPENSEARCH_ENDPOINT_MIGRATION,
+    OPENSEARCH_AUTH,
+    OPENSEARCH_INDEX
+  );
+
   const GRAPHQL_REQUEST_RETRY = 5;
   const JWT_SECRET_KEY = Configuration.get("JWT_SECRET_KEY");
   const headlessGraphQLCLient = new HeadlessGraphQLClient(
@@ -340,7 +347,8 @@ process.on("uncaughtException", console.error);
     BSCSCAN_ROOT_URL,
     integration,
     multiPlanetary,
-    FAILURE_SUBSCRIBERS
+    FAILURE_SUBSCRIBERS,
+    opensearchMigrationClient
   );
   const ethereumBurnEventMonitor = new BscBurnEventMonitor(
     provider,
