@@ -97,7 +97,9 @@ process.on("uncaughtException", console.error);
   const SLACK_WEB_TOKEN: string = Configuration.get("SLACK_WEB_TOKEN");
   const FAILURE_SUBSCRIBERS: string = Configuration.get("FAILURE_SUBSCRIBERS");
   const OPENSEARCH_ENDPOINT: string = Configuration.get("OPENSEARCH_ENDPOINT");
-  const OPENSEARCH_ENDPOINT_MIGRATION: string = Configuration.get("OPENSEARCH_ENDPOINT_MIGRATION");
+  const OPENSEARCH_ENDPOINT_MIGRATION: string = Configuration.get(
+    "OPENSEARCH_ENDPOINT_MIGRATION"
+  );
   const OPENSEARCH_AUTH: string = Configuration.get("OPENSEARCH_AUTH");
   const OPENSEARCH_INDEX: string =
     Configuration.get("OPENSEARCH_INDEX", false) || "9c-eth-bridge";
