@@ -19,8 +19,8 @@ export class PendingTransactionRetryMessage implements Message {
   }
 
   render(): ForceOmit<Partial<ChatPostMessageArguments>, "channel"> {
-    console.log(this.transactions);
     if (this.transactions) {
+      console.log("Pending Transactions : ", this.transactions);
       return {
         text: `${this.transactions.length} Pending Transactions Found`,
         attachments: this.transactions.map((tx) => ({
