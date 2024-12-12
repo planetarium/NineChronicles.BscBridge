@@ -15,6 +15,7 @@ import { IExchangeHistoryStore } from "../interfaces/exchange-history-store";
 import { UnwrappingRetryIgnoreEvent } from "../messages/unwrapping-retry-ignore-event";
 import { SpreadsheetClient } from "../spreadsheet-client";
 import { MultiPlanetary } from "../multi-planetary";
+import { TransactionStatus } from "../types/transaction-status";
 
 export class BscBurnEventObserver
   implements
@@ -138,6 +139,7 @@ export class BscBurnEventObserver
         recipient: user9cAddress,
         timestamp: new Date().toISOString(),
         amount: parseFloat(amountString),
+        status: TransactionStatus.PENDING,
       });
 
       try {
@@ -212,7 +214,17 @@ export class BscBurnEventObserver
           network: "BSC",
         });
         console.log("Transferred", nineChroniclesTxId);
+
+        await this._exchangeHistoryStore.updateStatus(
+          transactionHash,
+          TransactionStatus.COMPLETED
+        );
       } catch (e) {
+        await this._exchangeHistoryStore.updateStatus(
+          transactionHash,
+          TransactionStatus.FAILED
+        );
+
         const slackMsgRes = await this._slackMessageSender.sendMessage(
           new UnwrappingFailureEvent(
             this._etherscanUrl,

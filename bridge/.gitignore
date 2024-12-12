@@ -1,4 +1,3 @@
-
 # Created by https://www.toptal.com/developers/gitignore/api/visualstudiocode,node
 # Edit at https://www.toptal.com/developers/gitignore?templates=visualstudiocode,node
 
@@ -142,3 +141,7 @@ temp/
 .env
 
 # End of https://www.toptal.com/developers/gitignore/api/visualstudiocode,node
+
+# macOS system files
+.DS_Store
+**/.DS_Store

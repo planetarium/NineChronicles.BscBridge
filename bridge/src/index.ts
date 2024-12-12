@@ -30,6 +30,7 @@ import { SpreadsheetClient } from "./spreadsheet-client";
 import { google } from "googleapis";
 import { MultiPlanetary } from "./multi-planetary";
 import { bscBridgeContractAbi } from "./bsc-bridge-contract-abi";
+import { PendingTransactionRetryHandler } from "./retry-pending-transactions";
 
 consoleStamp(console);
 
@@ -335,6 +336,16 @@ process.on("uncaughtException", console.error);
     heimdall: ODIN_TO_HEIMDALL_VALUT_ADDRESS,
   };
   const multiPlanetary = new MultiPlanetary(planetIds, planetVaultAddress);
+
+  const pendingTransactionRetryHandler = new PendingTransactionRetryHandler(
+    exchangeHistoryStore,
+    ncgKmsTransfer,
+    multiPlanetary,
+    slackMessageSender
+  );
+
+  // 서버 시작 시 pending 트랜잭션 slack 메시지 전송
+  await pendingTransactionRetryHandler.retryPendingTransactions();
 
   const ethereumBurnEventObserver = new BscBurnEventObserver(
     ncgKmsTransfer,
