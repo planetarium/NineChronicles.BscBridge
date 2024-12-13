@@ -2,10 +2,10 @@ import { ChatPostMessageArguments } from "@slack/web-api";
 import { Message } from ".";
 import { ForceOmit } from "../types/force-omit";
 import { ExchangeHistory } from "../interfaces/exchange-history-store";
-import { combineUrl } from "../messages/utils";
+import { combineUrl } from "./utils";
 import { MultiPlanetary } from "../multi-planetary";
 
-export class PendingTransactionRetryMessage implements Message {
+export class PendingTransactionMessage implements Message {
   private readonly _bscScanUrl: string;
   private readonly _multiPlanetary: MultiPlanetary;
 
