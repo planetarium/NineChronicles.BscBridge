@@ -193,6 +193,10 @@ export class BscBurnEventObserver
             requestPlanetName
           )
         );
+        await this._exchangeHistoryStore.updateStatus(
+          transactionHash,
+          TransactionStatus.COMPLETED
+        );
         await this._opensearchClient.to_opensearch("info", {
           content: "wNCG -> NCG request success",
           libplanetTxId: nineChroniclesTxId,
@@ -214,17 +218,7 @@ export class BscBurnEventObserver
           network: "BSC",
         });
         console.log("Transferred", nineChroniclesTxId);
-
-        await this._exchangeHistoryStore.updateStatus(
-          transactionHash,
-          TransactionStatus.COMPLETED
-        );
       } catch (e) {
-        await this._exchangeHistoryStore.updateStatus(
-          transactionHash,
-          TransactionStatus.FAILED
-        );
-
         const slackMsgRes = await this._slackMessageSender.sendMessage(
           new UnwrappingFailureEvent(
             this._etherscanUrl,
@@ -236,6 +230,11 @@ export class BscBurnEventObserver
             requestPlanetName,
             this._failureSubscribers
           )
+        );
+
+        await this._exchangeHistoryStore.updateStatus(
+          transactionHash,
+          TransactionStatus.FAILED
         );
 
         await this._spreadsheetClient.to_spreadsheet_burn({
