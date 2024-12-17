@@ -15,6 +15,7 @@ import { IExchangeHistoryStore } from "../interfaces/exchange-history-store";
 import { UnwrappingRetryIgnoreEvent } from "../messages/unwrapping-retry-ignore-event";
 import { SpreadsheetClient } from "../spreadsheet-client";
 import { MultiPlanetary } from "../multi-planetary";
+import { TransactionStatus } from "../types/transaction-status";
 
 export class BscBurnEventObserver
   implements
@@ -138,6 +139,7 @@ export class BscBurnEventObserver
         recipient: user9cAddress,
         timestamp: new Date().toISOString(),
         amount: parseFloat(amountString),
+        status: TransactionStatus.PENDING,
       });
 
       try {
@@ -191,6 +193,10 @@ export class BscBurnEventObserver
             requestPlanetName
           )
         );
+        await this._exchangeHistoryStore.updateStatus(
+          transactionHash,
+          TransactionStatus.COMPLETED
+        );
         await this._opensearchClient.to_opensearch("info", {
           content: "wNCG -> NCG request success",
           libplanetTxId: nineChroniclesTxId,
@@ -224,6 +230,11 @@ export class BscBurnEventObserver
             requestPlanetName,
             this._failureSubscribers
           )
+        );
+
+        await this._exchangeHistoryStore.updateStatus(
+          transactionHash,
+          TransactionStatus.FAILED
         );
 
         await this._spreadsheetClient.to_spreadsheet_burn({

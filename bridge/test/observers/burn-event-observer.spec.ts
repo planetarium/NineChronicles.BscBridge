@@ -90,6 +90,8 @@ describe(BscBurnEventObserver.name, () => {
     put: jest.fn(),
     exist: jest.fn(),
     transferredAmountInLast24Hours: jest.fn(),
+    updateStatus: jest.fn(),
+    getPendingTransactions: jest.fn(),
   };
 
   const mockIntegration: jest.Mocked<Integration> = {
@@ -228,6 +230,7 @@ describe(BscBurnEventObserver.name, () => {
             recipient: ncgRecipient,
             timestamp: expect.any(String),
             amount: 1,
+            status: "pending",
           },
         ],
         [
@@ -238,6 +241,7 @@ describe(BscBurnEventObserver.name, () => {
             recipient: ncgRecipient,
             timestamp: expect.any(String),
             amount: 1.2,
+            status: "pending",
           },
         ],
         [
@@ -248,6 +252,7 @@ describe(BscBurnEventObserver.name, () => {
             recipient: ncgRecipient,
             timestamp: expect.any(String),
             amount: 0.01,
+            status: "pending",
           },
         ],
         [
@@ -258,6 +263,7 @@ describe(BscBurnEventObserver.name, () => {
             recipient: ncgRecipient,
             timestamp: expect.any(String),
             amount: 3.22,
+            status: "pending",
           },
         ],
       ]);
@@ -312,6 +318,7 @@ describe(BscBurnEventObserver.name, () => {
             recipient: ncgRecipient,
             timestamp: expect.any(String),
             amount: 1,
+            status: "pending",
           },
         ],
         [
@@ -322,6 +329,7 @@ describe(BscBurnEventObserver.name, () => {
             recipient: ncgRecipient,
             timestamp: expect.any(String),
             amount: 1.2,
+            status: "pending",
           },
         ],
         [
@@ -332,6 +340,7 @@ describe(BscBurnEventObserver.name, () => {
             recipient: ncgRecipient,
             timestamp: expect.any(String),
             amount: 0.01,
+            status: "pending",
           },
         ],
         [
@@ -342,6 +351,7 @@ describe(BscBurnEventObserver.name, () => {
             recipient: ncgRecipient,
             timestamp: expect.any(String),
             amount: 3.22,
+            status: "pending",
           },
         ],
       ]);
@@ -406,6 +416,7 @@ describe(BscBurnEventObserver.name, () => {
             recipient: ncgRecipient,
             timestamp: expect.any(String),
             amount: 1,
+            status: "pending",
           },
         ],
         [
@@ -416,6 +427,7 @@ describe(BscBurnEventObserver.name, () => {
             recipient: ncgRecipient,
             timestamp: expect.any(String),
             amount: 1.2,
+            status: "pending",
           },
         ],
         [
@@ -426,6 +438,7 @@ describe(BscBurnEventObserver.name, () => {
             recipient: ncgRecipient,
             timestamp: expect.any(String),
             amount: 0.01,
+            status: "pending",
           },
         ],
         [
@@ -436,6 +449,7 @@ describe(BscBurnEventObserver.name, () => {
             recipient: ncgRecipient,
             timestamp: expect.any(String),
             amount: 3.22,
+            status: "pending",
           },
         ],
       ]);
