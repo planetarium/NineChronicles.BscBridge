@@ -570,5 +570,43 @@ describe(BscBurnEventObserver.name, () => {
 
       expect(mockIntegration.error.mock.calls).toMatchSnapshot();
     });
+
+    it("should handle existing transaction in exchange history", async () => {
+      const transactionHash = "TX-EXISTING";
+      const events = [
+        {
+          blockHash: "BLOCK-HASH",
+          address: "0x4029bC50b4747A037d38CF2197bCD335e22Ca301",
+          logIndex: 0,
+          blockNumber: 0,
+          event: "Burn",
+          raw: {
+            data: "",
+            topics: [],
+          },
+          signature: "",
+          transactionIndex: 0,
+          transactionHash: transactionHash,
+          txId: transactionHash,
+          returnValues: {
+            _sender: "0x2734048eC2892d111b4fbAB224400847544FC872",
+            _to: "0x6d29f9923C86294363e59BAaA46FcBc37Ee5aE2e",
+            amount: 1000000000000000000,
+          },
+        },
+      ];
+
+      // Mocking the exist method to return true
+      mockExchangeHistoryStore.exist.mockResolvedValue(true);
+
+      await observer.notify({
+        blockHash: "BLOCK-HASH",
+        events,
+      });
+
+      expect(mockSlackChannel.sendMessage.mock.calls).toMatchSnapshot();
+      expect(mockOpenSearchClient.to_opensearch.mock.calls).toMatchSnapshot();
+      expect(mockSlackChannel.sendMessage.mock.calls).toMatchSnapshot();
+    });
   });
 });

@@ -45,6 +45,12 @@ describe("Configuration", () => {
         expect(Configuration.get(ENV_NAME, false, "boolean")).toEqual(false);
         expect(Configuration.get("UNDEFINED", false, "boolean")).toEqual(false);
       });
+
+      it("should throw an error", () => {
+        expect(() => {
+          Configuration.get("UNDEFINED", true, "string");
+        }).toThrowError("Please set 'UNDEFINED' at .env");
+      });
     });
 
     for (const testcase of [".1", "FALSE", "", "*"]) {

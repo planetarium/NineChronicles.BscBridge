@@ -15,6 +15,69 @@ Array [
 ]
 `;
 
+exports[`BscBurnEventObserver notify should handle existing transaction in exchange history 1`] = `
+Array [
+  Array [
+    Object {
+      "attachments": Array [
+        Object {
+          "author_name": "Bridge Warning",
+          "color": "#ffcc00",
+          "fallback": "wNCG → NCG event already seems executed so it skipped.",
+          "fields": Array [
+            Object {
+              "title": "Binance Smart Chain network transaction id",
+              "value": "TX-EXISTING",
+            },
+          ],
+        },
+      ],
+      "text": "wNCG → NCG event already seems executed so it skipped.",
+    },
+  ],
+]
+`;
+
+exports[`BscBurnEventObserver notify should handle existing transaction in exchange history 2`] = `
+Array [
+  Array [
+    "error",
+    Object {
+      "amount": "1.00",
+      "cause": "Exchange history exist",
+      "content": "wNCG -> NCG request failure",
+      "ethereumTxId": "TX-EXISTING",
+      "network": "BSC",
+      "recipient": "0x6d29f9923C86294363e59BAaA46FcBc37Ee5aE2e",
+      "sender": "0x2734048eC2892d111b4fbAB224400847544FC872",
+    },
+  ],
+]
+`;
+
+exports[`BscBurnEventObserver notify should handle existing transaction in exchange history 3`] = `
+Array [
+  Array [
+    Object {
+      "attachments": Array [
+        Object {
+          "author_name": "Bridge Warning",
+          "color": "#ffcc00",
+          "fallback": "wNCG → NCG event already seems executed so it skipped.",
+          "fields": Array [
+            Object {
+              "title": "Binance Smart Chain network transaction id",
+              "value": "TX-EXISTING",
+            },
+          ],
+        },
+      ],
+      "text": "wNCG → NCG event already seems executed so it skipped.",
+    },
+  ],
+]
+`;
+
 exports[`BscBurnEventObserver notify slack/opensearch 9c transfer error message - snapshot 1`] = `
 Array [
   Array [
