@@ -2,6 +2,7 @@ import { IMonitorStateStore } from "./interfaces/monitor-state-store";
 import { Database } from "sqlite3";
 import { TransactionLocation } from "./types/transaction-location";
 import { promisify } from "util";
+import { rejects } from "assert";
 
 export class Sqlite3MonitorStateStore implements IMonitorStateStore {
   private readonly _database: Database;
@@ -24,10 +25,10 @@ export class Sqlite3MonitorStateStore implements IMonitorStateStore {
             block_hash TEXT NOT NULL,
             tx_id TEXT
         )`;
-    return new Promise((resolve, error) => {
+    return new Promise((resolve, reject) => {
       database.run(CREATE_TABLE_QUERY, (e) => {
         if (e) {
-          error();
+          reject(e);
         } else {
           resolve();
         }
