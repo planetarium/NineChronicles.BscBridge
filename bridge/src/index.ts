@@ -337,7 +337,6 @@ process.on("uncaughtException", console.error);
     slackMessageSender
   );
 
-  // 서버 시작 시 pending 트랜잭션 slack 메시지 전송
   await pendingTransactionRetryHandler.messagePendingTransactions();
 
   const ethereumBurnEventObserver = new BscBurnEventObserver(
