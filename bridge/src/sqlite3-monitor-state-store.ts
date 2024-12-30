@@ -2,7 +2,6 @@ import { IMonitorStateStore } from "./interfaces/monitor-state-store";
 import { Database } from "sqlite3";
 import { TransactionLocation } from "./types/transaction-location";
 import { promisify } from "util";
-import { rejects } from "assert";
 
 export class Sqlite3MonitorStateStore implements IMonitorStateStore {
   private readonly _database: Database;
