@@ -4,6 +4,7 @@ import { join } from "path";
 import { promises } from "fs";
 import { ExchangeHistory } from "../src/interfaces/exchange-history-store";
 import { TransactionStatus } from "../src/types/transaction-status";
+import { Database } from "sqlite3";
 
 describe("Sqlite3ExchangeHistoryStore", () => {
   let store: Sqlite3ExchangeHistoryStore;
@@ -124,7 +125,6 @@ describe("Sqlite3ExchangeHistoryStore", () => {
 
   describe("transaction status management", () => {
     it("should manage transaction status correctly", async () => {
-      // 1. 초기 상태 저장
       const tx: ExchangeHistory = {
         network: "bsc",
         tx_id: "TX-STATUS-TEST",
@@ -136,14 +136,12 @@ describe("Sqlite3ExchangeHistoryStore", () => {
       };
       await store.put(tx);
 
-      // 저장 직후 데이터 확인
       let checkAfterPut = await (store as any)._database.all(
         "SELECT * FROM exchange_histories WHERE tx_id = ?",
         ["TX-STATUS-TEST"]
       );
       console.log("After PUT:", checkAfterPut);
 
-      // status 업데이트 후 데이터 확인
       await store.updateStatus("TX-STATUS-TEST", TransactionStatus.FAILED);
       let checkAfterUpdate = await (store as any)._database.all(
         "SELECT * FROM exchange_histories WHERE tx_id = ?",
@@ -153,7 +151,6 @@ describe("Sqlite3ExchangeHistoryStore", () => {
     });
 
     it("should handle non-existent transaction", async () => {
-      // 존재하지 않는 트랜잭션의 상태 업데이트
       await store.updateStatus("NON-EXISTENT-TX", TransactionStatus.COMPLETED);
 
       const pendingTxs = await store.getPendingTransactions();
@@ -164,5 +161,21 @@ describe("Sqlite3ExchangeHistoryStore", () => {
   it("should throw error.", () => {
     expect(() => store.close()).not.toThrowError();
     expect(() => store.close()).toThrowError();
+  });
+
+  it("should reject when database.run fails", async () => {
+    // Mock Database class
+    const mockDatabase = {
+      run: jest.fn().mockImplementation((query, callback) => {
+        const error = new Error("SQLITE_ERROR: syntax error");
+        callback(error);
+      }),
+    } as unknown as Database;
+
+    await expect(
+      Sqlite3ExchangeHistoryStore["initialize"](mockDatabase)
+    ).rejects.toThrow("SQLITE_ERROR: syntax error");
+
+    expect(mockDatabase.run).toHaveBeenCalled();
   });
 });

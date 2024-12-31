@@ -1,5 +1,4 @@
 import Web3 from "web3";
-import { init } from "@sentry/node";
 import { KmsProvider } from "@planetarium/aws-kms-provider";
 
 import { BscBurnEventMonitor } from "./monitors/bsc-burn-event-monitor";
@@ -115,12 +114,6 @@ process.on("uncaughtException", console.error);
     "boolean"
   );
   const BSCSCAN_ROOT_URL: string = Configuration.get("BSCSCAN_ROOT_URL");
-  const SENTRY_DSN: string | undefined = Configuration.get("SENTRY_DSN", false);
-  if (SENTRY_DSN !== undefined) {
-    init({
-      dsn: SENTRY_DSN,
-    });
-  }
 
   // Environment Variables for using Google Spread Sheet API
   const SLACK_URL: string = Configuration.get("SLACK_URL");
@@ -344,7 +337,6 @@ process.on("uncaughtException", console.error);
     slackMessageSender
   );
 
-  // 서버 시작 시 pending 트랜잭션 slack 메시지 전송
   await pendingTransactionRetryHandler.messagePendingTransactions();
 
   const ethereumBurnEventObserver = new BscBurnEventObserver(
