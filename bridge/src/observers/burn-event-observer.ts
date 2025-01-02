@@ -37,7 +37,6 @@ export class BscBurnEventObserver
   private readonly _integration: Integration;
   private readonly _multiPlanetary: MultiPlanetary;
   private readonly _failureSubscribers: string;
-  private readonly _opensearchMigrationClient: OpenSearchClient;
 
   constructor(
     ncgTransfer: INCGTransfer,
@@ -52,8 +51,7 @@ export class BscBurnEventObserver
     etherscanUrl: string,
     integration: Integration,
     multiPlanetary: MultiPlanetary,
-    failureSubscribers: string,
-    opensearchMigrationClient: OpenSearchClient
+    failureSubscribers: string
   ) {
     this._ncgTransfer = ncgTransfer;
     this._slackMessageSender = slackMessageSender;
@@ -68,7 +66,6 @@ export class BscBurnEventObserver
     this._integration = integration;
     this._multiPlanetary = multiPlanetary;
     this._failureSubscribers = failureSubscribers;
-    this._opensearchMigrationClient = opensearchMigrationClient;
   }
 
   async notify(data: {
@@ -112,15 +109,6 @@ export class BscBurnEventObserver
           new UnwrappingRetryIgnoreEvent(transactionHash)
         );
         this._opensearchClient.to_opensearch("error", {
-          content: "wNCG -> NCG request failure",
-          cause: "Exchange history exist",
-          ethereumTxId: transactionHash,
-          sender: sender,
-          recipient: user9cAddress,
-          amount: amountString,
-          network: "BSC",
-        });
-        this._opensearchMigrationClient.to_opensearch("error", {
           content: "wNCG -> NCG request failure",
           cause: "Exchange history exist",
           ethereumTxId: transactionHash,
@@ -207,16 +195,6 @@ export class BscBurnEventObserver
           planetName: requestPlanetName,
           network: "BSC",
         });
-        await this._opensearchMigrationClient.to_opensearch("info", {
-          content: "wNCG -> NCG request success",
-          libplanetTxId: nineChroniclesTxId,
-          ethereumTxId: transactionHash,
-          sender: sender,
-          recipient: user9cAddress,
-          amount: amount.toNumber(),
-          planetName: requestPlanetName,
-          network: "BSC",
-        });
         console.log("Transferred", nineChroniclesTxId);
       } catch (e) {
         const slackMsgRes = await this._slackMessageSender.sendMessage(
@@ -252,16 +230,6 @@ export class BscBurnEventObserver
         });
 
         await this._opensearchClient.to_opensearch("error", {
-          content: "wNCG -> NCG request failure",
-          cause: String(e),
-          ethereumTxId: transactionHash,
-          sender: sender,
-          recipient: user9cAddress,
-          amount: amount.toNumber(),
-          planetName: requestPlanetName,
-          network: "BSC",
-        });
-        await this._opensearchMigrationClient.to_opensearch("error", {
           content: "wNCG -> NCG request failure",
           cause: String(e),
           ethereumTxId: transactionHash,
