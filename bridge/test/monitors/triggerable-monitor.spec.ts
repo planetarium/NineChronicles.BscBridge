@@ -190,7 +190,9 @@ describe(TriggerableMonitor.name, () => {
     expect(results.map((r) => r.blockHash)).toEqual(
       Array.from({ length: 10 }, (_, i) => `hash-${i + 1}`)
     );
-    expect(monitor.getBlockHashMock).toHaveBeenCalledTimes(10);
+    // One anchor read before/after the range, then current block and anchor
+    // reads for each yielded block (including cached empty blocks).
+    expect(monitor.getBlockHashMock).toHaveBeenCalledTimes(22);
   });
 
   it("does not batch when the backlog is at or below the catch-up threshold", async () => {

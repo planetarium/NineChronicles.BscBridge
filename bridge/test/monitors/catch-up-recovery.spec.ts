@@ -104,6 +104,128 @@ describe("catch-up recovery", () => {
     }
   );
 
+  it.each([false, true])(
+    "refetches changed cached ranges without replaying their consumed prefix (empty: %s)",
+    async (initiallyEmpty) => {
+      jest.spyOn(global, "setTimeout").mockImplementation(((fn: () => void) => {
+        fn();
+        return 0;
+      }) as unknown as typeof setTimeout);
+      let branch = "old";
+      const getLogs = jest.fn(
+        async (_filter: { fromBlock: number; toBlock: number }) =>
+          branch === "old" && initiallyEmpty
+            ? []
+            : [
+                {
+                  ...logAt(2),
+                  blockHash: `${branch}-2`,
+                  transactionHash: `${branch}-tx2`,
+                },
+              ]
+      );
+      const provider = {
+        _isProvider: true,
+        getBlockNumber: jest
+          .fn()
+          .mockResolvedValueOnce(10)
+          .mockResolvedValue(30),
+        getBlock: jest.fn(async (index: number) => ({
+          number: index,
+          hash: `${branch}-${index}`,
+        })),
+        getLogs,
+      } as unknown as ethers.providers.JsonRpcProvider;
+      const monitor = new BscBurnEventMonitor(
+        provider,
+        contractDescription,
+        null,
+        10
+      );
+      const loop = monitor.loop();
+      expect((await loop.next()).value).toEqual({
+        blockHash: "old-1",
+        events: [],
+      });
+      branch = "new";
+      const next = (await loop.next()).value;
+      expect(next.blockHash).toEqual("new-2");
+      expect(next.events).toEqual([
+        expect.objectContaining({ txId: "new-tx2" }),
+      ]);
+      expect(getLogs.mock.calls.map(([filter]) => filter.fromBlock)).toEqual([
+        1, 2,
+      ]);
+      await loop.return?.(undefined as never);
+    }
+  );
+
+  it("discards empty range results when the branch changes during getLogs", async () => {
+    jest.spyOn(global, "setTimeout").mockImplementation(((fn: () => void) => {
+      fn();
+      return 0;
+    }) as unknown as typeof setTimeout);
+    let branch = "old";
+    const getLogs = jest.fn(async () => {
+      if (branch === "old") {
+        branch = "new";
+        return [];
+      }
+      return [{ ...logAt(1), blockHash: "new-1", transactionHash: "new-tx1" }];
+    });
+    const provider = {
+      _isProvider: true,
+      getBlockNumber: jest.fn().mockResolvedValueOnce(10).mockResolvedValue(30),
+      getBlock: jest.fn(async (index: number) => ({
+        number: index,
+        hash: `${branch}-${index}`,
+      })),
+      getLogs,
+    } as unknown as ethers.providers.JsonRpcProvider;
+    const loop = new BscBurnEventMonitor(
+      provider,
+      contractDescription,
+      null,
+      10
+    ).loop();
+    const next = (await loop.next()).value;
+    expect(next.blockHash).toEqual("new-1");
+    expect(next.events[0].txId).toEqual("new-tx1");
+    expect(getLogs).toHaveBeenCalledTimes(2);
+    await loop.return?.(undefined as never);
+  });
+
+  it("rejects logs from a different branch even if the range anchor stays stable", async () => {
+    jest.spyOn(global, "setTimeout").mockImplementation(((fn: () => void) => {
+      fn();
+      return 0;
+    }) as unknown as typeof setTimeout);
+    const getLogs = jest
+      .fn()
+      .mockResolvedValueOnce([{ ...logAt(1), blockHash: "stale-1" }])
+      .mockResolvedValue([logAt(1)]);
+    const provider = {
+      _isProvider: true,
+      getBlockNumber: jest.fn().mockResolvedValueOnce(10).mockResolvedValue(30),
+      getBlock: jest.fn(async (index: number) => ({
+        number: index,
+        hash: `hash-${index}`,
+      })),
+      getLogs,
+    } as unknown as ethers.providers.JsonRpcProvider;
+    const loop = new BscBurnEventMonitor(
+      provider,
+      contractDescription,
+      null,
+      10
+    ).loop();
+    const next = (await loop.next()).value;
+    expect(next.blockHash).toEqual("hash-1");
+    expect(next.events[0].blockHash).toEqual("hash-1");
+    expect(getLogs).toHaveBeenCalledTimes(2);
+    await loop.return?.(undefined as never);
+  });
+
   it.each([-32005, -32602])(
     "splits explicit range error %s and preserves all events and empty blocks",
     async (code) => {

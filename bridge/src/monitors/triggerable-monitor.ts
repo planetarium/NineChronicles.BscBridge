@@ -152,6 +152,23 @@ export abstract class TriggerableMonitor<TEventData> extends Monitor<
       });
     }
     const triggeredIndexes = batch.flatMap((block) => block.triggeredIndexes);
+    // The range endpoint commits to all of its ancestors, including blocks
+    // with no events. Confirmations alone do not make cached logs immutable.
+    const anchorIndex = triggeredIndexes[triggeredIndexes.length - 1];
+    const anchorHash =
+      anchorIndex === undefined
+        ? undefined
+        : await this.getBlockHash(anchorIndex);
+    const assertAnchor = async () => {
+      if (
+        anchorHash !== undefined &&
+        (await this.getBlockHash(anchorIndex)) !== anchorHash
+      ) {
+        throw new Error(
+          `Chain changed while reading burn events at block ${anchorIndex}`
+        );
+      }
+    };
     const eventsByBlockIndex =
       triggeredIndexes.length > 0
         ? await this.getEventsInRange(
@@ -159,12 +176,20 @@ export abstract class TriggerableMonitor<TEventData> extends Monitor<
             triggeredIndexes[triggeredIndexes.length - 1]
           )
         : new Map<number, (TEventData & TransactionLocation)[]>();
+    await assertAnchor();
 
     for (const { scanIndex, triggeredIndexes } of batch) {
       for (const blockIndex of triggeredIndexes) {
         this.debug("Execute triggerred block #", blockIndex);
         const blockHash = await this.getBlockHash(blockIndex);
-        yield { blockHash, events: eventsByBlockIndex.get(blockIndex) ?? [] };
+        await assertAnchor();
+        const events = eventsByBlockIndex.get(blockIndex) ?? [];
+        if (events.some((event) => event.blockHash !== blockHash)) {
+          throw new Error(
+            `Burn logs disagree with block hash at ${blockIndex}`
+          );
+        }
+        yield { blockHash, events };
       }
       // Resuming after yield means the consumer finished this scan position.
       // Keep the scan index (not the confirmation-offset event block index)
