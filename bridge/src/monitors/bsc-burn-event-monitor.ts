@@ -4,6 +4,14 @@ import { ContractDescription } from "../types/contract-description";
 import { TransactionLocation } from "../types/transaction-location";
 import { ethers } from "ethers";
 
+const BURN_EVENT_SIG = "SentToLibPlanet(address,uint256,bytes32)";
+
+// Conservative chunk size for a single `eth_getLogs` range query when
+// catching up on a backlog of blocks. Most RPC providers (including Infura)
+// cap the block range (and/or result size) of a single `getLogs` call, so
+// this keeps each request well within typical limits.
+const MAX_LOGS_RANGE_SIZE = 1000;
+
 export class BscBurnEventMonitor extends TriggerableMonitor<EventData> {
   private readonly _provider: ethers.providers.JsonRpcProvider;
   private readonly _contract: ethers.Contract;
@@ -78,16 +86,68 @@ export class BscBurnEventMonitor extends TriggerableMonitor<EventData> {
   }
 
   protected async getEvents(blockIndex: number) {
-    const BURN_EVENT_SIG = "SentToLibPlanet(address,uint256,bytes32)";
-
-    const filter = {
+    const pastEvents = await this._provider.getLogs({
       address: this._contractDescription.address,
       topics: [ethers.utils.id(BURN_EVENT_SIG)], // This is equal with Web3.utils.sha3
       fromBlock: blockIndex,
       toBlock: blockIndex,
-    };
+    });
 
-    const pastEvents = await this._provider.getLogs(filter);
+    return this.parseEvents(pastEvents);
+  }
+
+  /**
+   * Fetches and parses `SentToLibPlanet` events for every block index in
+   * `[fromBlockIndex, toBlockIndex]` using ranged `eth_getLogs` calls instead
+   * of one call per block, chunked to `MAX_LOGS_RANGE_SIZE` blocks per call
+   * to stay within typical RPC provider limits. Used when catching up on a
+   * backlog (see `TriggerableMonitor.catchUp`).
+   */
+  protected async getEventsInRange(
+    fromBlockIndex: number,
+    toBlockIndex: number
+  ): Promise<Map<number, (EventData & TransactionLocation)[]>> {
+    const eventsByBlockIndex = new Map<
+      number,
+      (EventData & TransactionLocation)[]
+    >();
+
+    for (
+      let blockIndex = fromBlockIndex;
+      blockIndex <= toBlockIndex;
+      blockIndex++
+    ) {
+      eventsByBlockIndex.set(blockIndex, []);
+    }
+
+    for (
+      let chunkStart = fromBlockIndex;
+      chunkStart <= toBlockIndex;
+      chunkStart += MAX_LOGS_RANGE_SIZE
+    ) {
+      const chunkEnd = Math.min(
+        chunkStart + MAX_LOGS_RANGE_SIZE - 1,
+        toBlockIndex
+      );
+
+      const pastEvents = await this._provider.getLogs({
+        address: this._contractDescription.address,
+        topics: [ethers.utils.id(BURN_EVENT_SIG)],
+        fromBlock: chunkStart,
+        toBlock: chunkEnd,
+      });
+
+      const parsedEvents = this.parseEvents(pastEvents);
+      for (let idx = 0; idx < pastEvents.length; idx++) {
+        const blockEvents = eventsByBlockIndex.get(pastEvents[idx].blockNumber);
+        blockEvents?.push(parsedEvents[idx]);
+      }
+    }
+
+    return eventsByBlockIndex;
+  }
+
+  private parseEvents(pastEvents: ethers.providers.Log[]) {
     const parsedEvents = pastEvents.map((log) =>
       this._contract.interface.parseLog(log)
     );
