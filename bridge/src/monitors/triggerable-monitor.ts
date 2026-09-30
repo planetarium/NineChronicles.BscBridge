@@ -23,18 +23,28 @@ export abstract class TriggerableMonitor<TEventData> extends Monitor<
   TEventData & TransactionLocation
 > {
   private latestBlockNumber: number | undefined;
+  private consecutiveErrorCount: number = 0;
 
   private readonly _latestTransactionLocation: TransactionLocation | null;
   private readonly _delayMilliseconds: number;
+  private readonly _maxDelayMilliseconds: number;
+  private readonly _catchUpThresholdBlocks: number;
+  private readonly _maxCatchUpBatchSize: number;
 
   constructor(
     latestTransactionLocation: TransactionLocation | null,
-    delayMilliseconds: number = 15 * 1000
+    delayMilliseconds: number = 15 * 1000,
+    maxDelayMilliseconds: number = 5 * 60 * 1000,
+    catchUpThresholdBlocks: number = 10,
+    maxCatchUpBatchSize: number = 1000
   ) {
     super();
 
     this._latestTransactionLocation = latestTransactionLocation;
     this._delayMilliseconds = delayMilliseconds;
+    this._maxDelayMilliseconds = maxDelayMilliseconds;
+    this._catchUpThresholdBlocks = catchUpThresholdBlocks;
+    this._maxCatchUpBatchSize = maxCatchUpBatchSize;
   }
 
   async *loop(): AsyncIterableIterator<{
@@ -60,21 +70,27 @@ export abstract class TriggerableMonitor<TEventData> extends Monitor<
         const tipIndex = await this.getTipIndex();
         this.debug("Try to check trigger at", this.latestBlockNumber + 1);
         if (this.latestBlockNumber + 1 <= tipIndex) {
-          const trigerredBlockIndexes = this.triggerredBlocks(
-            this.latestBlockNumber + 1
-          );
+          const backlogSize = tipIndex - this.latestBlockNumber;
 
-          for (const blockIndex of trigerredBlockIndexes) {
-            this.debug("Execute triggerred block #", blockIndex);
-            const blockHash = await this.getBlockHash(blockIndex);
+          if (backlogSize > this._catchUpThresholdBlocks) {
+            yield* this.catchUp(this.latestBlockNumber + 1, tipIndex);
+          } else {
+            const trigerredBlockIndexes = this.triggerredBlocks(
+              this.latestBlockNumber + 1
+            );
 
-            yield {
-              blockHash,
-              events: await this.getEvents(blockIndex),
-            };
+            for (const blockIndex of trigerredBlockIndexes) {
+              this.debug("Execute triggerred block #", blockIndex);
+              const blockHash = await this.getBlockHash(blockIndex);
+
+              yield {
+                blockHash,
+                events: await this.getEvents(blockIndex),
+              };
+            }
+
+            this.latestBlockNumber += 1;
           }
-
-          this.latestBlockNumber += 1;
         } else {
           this.debug(
             `Skip check trigger current: ${this.latestBlockNumber} / tip: ${tipIndex}`
@@ -82,12 +98,104 @@ export abstract class TriggerableMonitor<TEventData> extends Monitor<
 
           await delay(this._delayMilliseconds);
         }
+
+        this.consecutiveErrorCount = 0;
       } catch (error) {
+        this.consecutiveErrorCount += 1;
+        const backoffDelay = Math.min(
+          this._delayMilliseconds * 2 ** (this.consecutiveErrorCount - 1),
+          this._maxDelayMilliseconds
+        );
+
         this.error(
-          "Ignore and continue loop without breaking though unexpected error occurred:",
+          `Ignore and continue loop without breaking though unexpected error occurred (consecutive errors: ${this.consecutiveErrorCount}, backing off ${backoffDelay}ms):`,
           error
         );
+
+        await delay(backoffDelay);
       }
+    }
+  }
+
+  /**
+   * Catches up on a backlog of blocks between the last processed block and
+   * the current chain tip. Batches the underlying event range query (see
+   * `getEventsInRange`) so that catching up after a long gap (e.g. after an
+   * RPC endpoint switch, or after downtime) does not cost one `getLogs` (or
+   * equivalent) call per block.
+   */
+  private async *catchUp(
+    fromBlockIndex: number,
+    tipIndex: number
+  ): AsyncIterableIterator<{
+    blockHash: BlockHash;
+    events: (TEventData & TransactionLocation)[];
+  }> {
+    const batchToBlockIndex = Math.min(
+      fromBlockIndex - 1 + this._maxCatchUpBatchSize,
+      tipIndex
+    );
+
+    this.debug(
+      `Catching up backlog: batching blocks ${fromBlockIndex}-${batchToBlockIndex} (tip: ${tipIndex})`
+    );
+
+    const batch: { scanIndex: number; triggeredIndexes: number[] }[] = [];
+    for (
+      let scanIndex = fromBlockIndex;
+      scanIndex <= batchToBlockIndex;
+      scanIndex++
+    ) {
+      batch.push({
+        scanIndex,
+        triggeredIndexes: this.triggerredBlocks(scanIndex),
+      });
+    }
+    const triggeredIndexes = batch.flatMap((block) => block.triggeredIndexes);
+    // The range endpoint commits to all of its ancestors, including blocks
+    // with no events. Confirmations alone do not make cached logs immutable.
+    const anchorIndex = triggeredIndexes[triggeredIndexes.length - 1];
+    const anchorHash =
+      anchorIndex === undefined
+        ? undefined
+        : await this.getBlockHash(anchorIndex);
+    const assertAnchor = async () => {
+      if (
+        anchorHash !== undefined &&
+        (await this.getBlockHash(anchorIndex)) !== anchorHash
+      ) {
+        throw new Error(
+          `Chain changed while reading burn events at block ${anchorIndex}`
+        );
+      }
+    };
+    const eventsByBlockIndex =
+      triggeredIndexes.length > 0
+        ? await this.getEventsInRange(
+            triggeredIndexes[0],
+            triggeredIndexes[triggeredIndexes.length - 1]
+          )
+        : new Map<number, (TEventData & TransactionLocation)[]>();
+    await assertAnchor();
+
+    for (const { scanIndex, triggeredIndexes } of batch) {
+      for (const blockIndex of triggeredIndexes) {
+        this.debug("Execute triggerred block #", blockIndex);
+        const blockHash = await this.getBlockHash(blockIndex);
+        await assertAnchor();
+        const events = eventsByBlockIndex.get(blockIndex) ?? [];
+        if (events.some((event) => event.blockHash !== blockHash)) {
+          throw new Error(
+            `Burn logs disagree with block hash at ${blockIndex}`
+          );
+        }
+        yield { blockHash, events };
+      }
+      // Resuming after yield means the consumer finished this scan position.
+      // Keep the scan index (not the confirmation-offset event block index)
+      // so a later RPC failure cannot replay the already completed prefix.
+      this.latestBlockNumber = scanIndex;
+      this.consecutiveErrorCount = 0;
     }
   }
 
@@ -114,4 +222,31 @@ export abstract class TriggerableMonitor<TEventData> extends Monitor<
   protected abstract getEvents(
     blockIndex: number
   ): Promise<(TEventData & TransactionLocation)[]>;
+
+  /**
+   * Fetches events for every block index in `[fromBlockIndex, toBlockIndex]`
+   * in as few RPC calls as possible. The default implementation simply calls
+   * `getEvents` once per block, so it is always correct, but subclasses whose
+   * underlying RPC supports a ranged query (e.g. `eth_getLogs` with a block
+   * range) should override this to batch that query instead.
+   */
+  protected async getEventsInRange(
+    fromBlockIndex: number,
+    toBlockIndex: number
+  ): Promise<Map<number, (TEventData & TransactionLocation)[]>> {
+    const eventsByBlockIndex = new Map<
+      number,
+      (TEventData & TransactionLocation)[]
+    >();
+
+    for (
+      let blockIndex = fromBlockIndex;
+      blockIndex <= toBlockIndex;
+      blockIndex++
+    ) {
+      eventsByBlockIndex.set(blockIndex, await this.getEvents(blockIndex));
+    }
+
+    return eventsByBlockIndex;
+  }
 }
