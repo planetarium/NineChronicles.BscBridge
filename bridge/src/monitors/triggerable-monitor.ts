@@ -140,33 +140,38 @@ export abstract class TriggerableMonitor<TEventData> extends Monitor<
       `Catching up backlog: batching blocks ${fromBlockIndex}-${batchToBlockIndex} (tip: ${tipIndex})`
     );
 
-    const trigerredBlockIndexes: number[] = [];
+    const batch: { scanIndex: number; triggeredIndexes: number[] }[] = [];
     for (
-      let blockIndex = fromBlockIndex;
-      blockIndex <= batchToBlockIndex;
-      blockIndex++
+      let scanIndex = fromBlockIndex;
+      scanIndex <= batchToBlockIndex;
+      scanIndex++
     ) {
-      trigerredBlockIndexes.push(...this.triggerredBlocks(blockIndex));
+      batch.push({
+        scanIndex,
+        triggeredIndexes: this.triggerredBlocks(scanIndex),
+      });
     }
+    const triggeredIndexes = batch.flatMap((block) => block.triggeredIndexes);
+    const eventsByBlockIndex =
+      triggeredIndexes.length > 0
+        ? await this.getEventsInRange(
+            triggeredIndexes[0],
+            triggeredIndexes[triggeredIndexes.length - 1]
+          )
+        : new Map<number, (TEventData & TransactionLocation)[]>();
 
-    if (trigerredBlockIndexes.length > 0) {
-      const eventsByBlockIndex = await this.getEventsInRange(
-        trigerredBlockIndexes[0],
-        trigerredBlockIndexes[trigerredBlockIndexes.length - 1]
-      );
-
-      for (const blockIndex of trigerredBlockIndexes) {
+    for (const { scanIndex, triggeredIndexes } of batch) {
+      for (const blockIndex of triggeredIndexes) {
         this.debug("Execute triggerred block #", blockIndex);
         const blockHash = await this.getBlockHash(blockIndex);
-
-        yield {
-          blockHash,
-          events: eventsByBlockIndex.get(blockIndex) ?? [],
-        };
+        yield { blockHash, events: eventsByBlockIndex.get(blockIndex) ?? [] };
       }
+      // Resuming after yield means the consumer finished this scan position.
+      // Keep the scan index (not the confirmation-offset event block index)
+      // so a later RPC failure cannot replay the already completed prefix.
+      this.latestBlockNumber = scanIndex;
+      this.consecutiveErrorCount = 0;
     }
-
-    this.latestBlockNumber = batchToBlockIndex;
   }
 
   protected abstract processRemains(

@@ -130,12 +130,7 @@ export class BscBurnEventMonitor extends TriggerableMonitor<EventData> {
         toBlockIndex
       );
 
-      const pastEvents = await this._provider.getLogs({
-        address: this._contractDescription.address,
-        topics: [ethers.utils.id(BURN_EVENT_SIG)],
-        fromBlock: chunkStart,
-        toBlock: chunkEnd,
-      });
+      const pastEvents = await this.getLogsInRange(chunkStart, chunkEnd);
 
       const parsedEvents = this.parseEvents(pastEvents);
       for (let idx = 0; idx < pastEvents.length; idx++) {
@@ -145,6 +140,40 @@ export class BscBurnEventMonitor extends TriggerableMonitor<EventData> {
     }
 
     return eventsByBlockIndex;
+  }
+
+  private async getLogsInRange(
+    fromBlock: number,
+    toBlock: number
+  ): Promise<ethers.providers.Log[]> {
+    try {
+      return await this._provider.getLogs({
+        address: this._contractDescription.address,
+        topics: [ethers.utils.id(BURN_EVENT_SIG)],
+        fromBlock,
+        toBlock,
+      });
+    } catch (error) {
+      const wrapper = error as {
+        code?: number;
+        message?: string;
+        error?: { code?: number; message?: string };
+      };
+      const cause = wrapper?.error ?? wrapper;
+      const rangeLimited =
+        (cause?.code === -32005 || cause?.code === -32602) &&
+        /block.*range|range.*block|too many (results|logs)|query returned more than|response.*size/i.test(
+          cause.message ?? ""
+        );
+      if (!rangeLimited || fromBlock === toBlock) throw error;
+
+      // Only split explicit range/result-size failures, never rate limits or
+      // transport errors. Query halves sequentially to avoid a request burst.
+      const midpoint = fromBlock + Math.floor((toBlock - fromBlock) / 2);
+      const left = await this.getLogsInRange(fromBlock, midpoint);
+      const right = await this.getLogsInRange(midpoint + 1, toBlock);
+      return [...left, ...right];
+    }
   }
 
   private parseEvents(pastEvents: ethers.providers.Log[]) {
