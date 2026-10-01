@@ -1,5 +1,6 @@
 import Web3 from "web3";
-import { KmsProvider } from "@planetarium/aws-kms-provider";
+import { KmsSigner } from "@planetarium/aws-kms-provider";
+import { PrimaryRpcProvider } from "./primary-rpc-provider";
 
 import { BscBurnEventMonitor } from "./monitors/bsc-burn-event-monitor";
 import { HeadlessGraphQLClient } from "./headless-graphql-client";
@@ -24,7 +25,6 @@ import {
   IExchangeFeeRatioPolicy,
 } from "./policies/exchange-fee-ratio";
 import { SlackChannel } from "./slack-channel";
-import { ethers } from "ethers";
 import { SpreadsheetClient } from "./spreadsheet-client";
 import { google } from "googleapis";
 import { MultiPlanetary } from "./multi-planetary";
@@ -41,9 +41,9 @@ process.on("uncaughtException", console.error);
   );
   const NCG_MINTER: string = Configuration.get("NCG_MINTER");
   const KMS_PROVIDER_URL: string = Configuration.get("KMS_PROVIDER_URL");
-  // const KMS_PROVIDER_SUB_URL: string = Configuration.get(
-  //     "KMS_PROVIDER_SUB_URL"
-  // );
+  const KMS_PROVIDER_SUB_URL =
+    Configuration.get("KMS_PROVIDER_SUB_URL", false)?.trim() || undefined;
+  const BSC_CHAIN_ID = Number(Configuration.get("BSC_CHAIN_ID", false) ?? "56");
   const KMS_PROVIDER_KEY_ID: string = Configuration.get("KMS_PROVIDER_KEY_ID");
   const KMS_PROVIDER_REGION: string = Configuration.get("KMS_PROVIDER_REGION");
   const KMS_PROVIDER_AWS_ACCESSKEY: string = Configuration.get(
@@ -253,15 +253,20 @@ process.on("uncaughtException", console.error);
   const integration: Integration = new PagerDutyIntegration(
     PAGERDUTY_ROUTING_KEY
   );
-  const kmsProvider = new KmsProvider(KMS_PROVIDER_URL, {
-    region: KMS_PROVIDER_REGION,
-    keyIds: [KMS_PROVIDER_KEY_ID],
-    credential: {
-      accessKeyId: KMS_PROVIDER_AWS_ACCESSKEY,
-      secretAccessKey: KMS_PROVIDER_AWS_SECRETKEY,
-    },
+  const provider = new PrimaryRpcProvider(
+    KMS_PROVIDER_URL,
+    KMS_PROVIDER_SUB_URL,
+    {
+      expectedChainId: BSC_CHAIN_ID,
+    }
+  );
+  await provider.getNetwork();
+  // Address derivation uses KMS directly; no unused EVM provider/block tracker.
+  const kmsAccount = new KmsSigner(KMS_PROVIDER_REGION, KMS_PROVIDER_KEY_ID, {
+    accessKeyId: KMS_PROVIDER_AWS_ACCESSKEY,
+    secretAccessKey: KMS_PROVIDER_AWS_SECRETKEY,
   });
-  const web3 = new Web3(kmsProvider);
+  const web3 = new Web3();
 
   const wNCGonBscBridgeContract: ContractDescription = {
     abi: bscBridgeContractAbi,
@@ -274,14 +279,8 @@ process.on("uncaughtException", console.error);
     );
   }
 
-  const kmsAddresses = await kmsProvider.getAccounts();
-  if (kmsAddresses.length != 1) {
-    throw Error("NineChronicles.EthBridge is supported only one address.");
-  }
-  const kmsAddress = kmsAddresses[0];
+  const kmsAddress = "0x" + (await kmsAccount.getAddress()).toString();
   console.log(kmsAddress);
-
-  const provider = new ethers.providers.JsonRpcProvider(KMS_PROVIDER_URL);
 
   const signer = new KMSNCGSigner(KMS_PROVIDER_REGION, KMS_PROVIDER_KEY_ID, {
     accessKeyId: KMS_PROVIDER_AWS_ACCESSKEY,
