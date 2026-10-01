@@ -178,25 +178,54 @@ export abstract class TriggerableMonitor<TEventData> extends Monitor<
         : new Map<number, (TEventData & TransactionLocation)[]>();
     await assertAnchor();
 
+    const coalesceEmptyBlocks = this.coalesceEmptyBlocks();
     for (const { scanIndex, triggeredIndexes } of batch) {
+      let yieldedEvents = false;
       for (const blockIndex of triggeredIndexes) {
+        const events = eventsByBlockIndex.get(blockIndex) ?? [];
+        if (coalesceEmptyBlocks && events.length === 0) continue;
         this.debug("Execute triggerred block #", blockIndex);
         const blockHash = await this.getBlockHash(blockIndex);
         await assertAnchor();
-        const events = eventsByBlockIndex.get(blockIndex) ?? [];
         if (events.some((event) => event.blockHash !== blockHash)) {
           throw new Error(
             `Burn logs disagree with block hash at ${blockIndex}`
           );
         }
         yield { blockHash, events };
+        yieldedEvents = true;
       }
       // Resuming after yield means the consumer finished this scan position.
       // Keep the scan index (not the confirmation-offset event block index)
       // so a later RPC failure cannot replay the already completed prefix.
-      this.latestBlockNumber = scanIndex;
+      // Coalesced empty positions remain uncommitted until the next verified
+      // event or end checkpoint is consumed. A changed branch can add burns
+      // to those empty positions, so a retry must query them again.
+      if (!coalesceEmptyBlocks || yieldedEvents) {
+        this.latestBlockNumber = scanIndex;
+        this.consecutiveErrorCount = 0;
+      }
+    }
+
+    if (coalesceEmptyBlocks) {
+      if (
+        anchorHash !== undefined &&
+        (eventsByBlockIndex.get(anchorIndex)?.length ?? 0) === 0
+      ) {
+        // Persist the empty suffix once. Never overwrite a last-block event
+        // checkpoint with txId=null when no empty suffix exists.
+        await assertAnchor();
+        yield { blockHash: anchorHash, events: [] };
+      }
+      this.latestBlockNumber = batchToBlockIndex;
       this.consecutiveErrorCount = 0;
     }
+  }
+
+  // Subclasses with ordered, one-block triggers may persist an entire empty
+  // suffix as one checkpoint instead of emitting every empty block.
+  protected coalesceEmptyBlocks(): boolean {
+    return false;
   }
 
   protected abstract processRemains(

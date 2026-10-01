@@ -113,16 +113,27 @@ describe("catch-up recovery", () => {
       }) as unknown as typeof setTimeout);
       let branch = "old";
       const getLogs = jest.fn(
-        async (_filter: { fromBlock: number; toBlock: number }) =>
-          branch === "old" && initiallyEmpty
-            ? []
-            : [
-                {
-                  ...logAt(2),
-                  blockHash: `${branch}-2`,
-                  transactionHash: `${branch}-tx2`,
-                },
-              ]
+        async (filter: { fromBlock: number; toBlock: number }) =>
+          [
+            {
+              ...logAt(1),
+              blockHash: `${branch}-1`,
+              transactionHash: `${branch}-tx1`,
+            },
+            ...(branch === "old" && initiallyEmpty
+              ? []
+              : [
+                  {
+                    ...logAt(2),
+                    blockHash: `${branch}-2`,
+                    transactionHash: `${branch}-tx2`,
+                  },
+                ]),
+          ].filter(
+            (log) =>
+              log.blockNumber >= filter.fromBlock &&
+              log.blockNumber <= filter.toBlock
+          )
       );
       const provider = {
         _isProvider: true,
@@ -145,7 +156,7 @@ describe("catch-up recovery", () => {
       const loop = monitor.loop();
       expect((await loop.next()).value).toEqual({
         blockHash: "old-1",
-        events: [],
+        events: [expect.objectContaining({ txId: "old-tx1" })],
       });
       branch = "new";
       const next = (await loop.next()).value;

@@ -13,18 +13,19 @@ const BURN_EVENT_SIG = "SentToLibPlanet(address,uint256,bytes32)";
 const MAX_LOGS_RANGE_SIZE = 1000;
 
 export class BscBurnEventMonitor extends TriggerableMonitor<EventData> {
-  private readonly _provider: ethers.providers.JsonRpcProvider;
+  private readonly _provider: ethers.providers.BaseProvider;
   private readonly _contract: ethers.Contract;
   private readonly _contractDescription: ContractDescription;
   private readonly _confirmations: number;
 
   constructor(
-    provider: ethers.providers.JsonRpcProvider,
+    provider: ethers.providers.BaseProvider,
     contractDescription: ContractDescription,
     latestTransactionLocation: TransactionLocation | null,
     confirmations: number
   ) {
-    super(latestTransactionLocation);
+    // Always scan a bounded range, including when fewer than ten blocks lag.
+    super(latestTransactionLocation, undefined, undefined, 0);
 
     this._provider = provider;
     this._contract = new ethers.Contract(
@@ -60,6 +61,10 @@ export class BscBurnEventMonitor extends TriggerableMonitor<EventData> {
         },
       ],
     };
+  }
+
+  protected coalesceEmptyBlocks(): boolean {
+    return true;
   }
 
   protected triggerredBlocks(blockIndex: number): number[] {
@@ -133,9 +138,8 @@ export class BscBurnEventMonitor extends TriggerableMonitor<EventData> {
       const pastEvents = await this.getLogsInRange(chunkStart, chunkEnd);
 
       const parsedEvents = this.parseEvents(pastEvents);
-      for (let idx = 0; idx < pastEvents.length; idx++) {
-        const blockEvents = eventsByBlockIndex.get(pastEvents[idx].blockNumber);
-        blockEvents?.push(parsedEvents[idx]);
+      for (const event of parsedEvents) {
+        eventsByBlockIndex.get(event.blockNumber)?.push(event);
       }
     }
 
@@ -177,23 +181,31 @@ export class BscBurnEventMonitor extends TriggerableMonitor<EventData> {
   }
 
   private parseEvents(pastEvents: ethers.providers.Log[]) {
-    const parsedEvents = pastEvents.map((log) =>
+    // Keep transaction checkpoints deterministic even if an RPC endpoint
+    // returns logs out of order.
+    const orderedEvents = [...pastEvents].sort(
+      (left, right) =>
+        left.blockNumber - right.blockNumber ||
+        left.transactionIndex - right.transactionIndex ||
+        left.logIndex - right.logIndex
+    );
+    const parsedEvents = orderedEvents.map((log) =>
       this._contract.interface.parseLog(log)
     );
 
     return parsedEvents.map((parsedEvent, idx) => {
       return {
-        ...pastEvents[idx],
+        ...orderedEvents[idx],
         ...parsedEvent,
-        txId: pastEvents[idx].transactionHash,
+        txId: orderedEvents[idx].transactionHash,
         returnValues: {
           ...parsedEvent.args,
           amount: ethers.BigNumber.from(parsedEvent.args._amount).toString(),
           _sender: parsedEvent.args?._user,
         },
         raw: {
-          data: pastEvents[idx].data,
-          topics: pastEvents[idx].topics,
+          data: orderedEvents[idx].data,
+          topics: orderedEvents[idx].topics,
         },
         event: parsedEvent.name,
       };

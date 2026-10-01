@@ -92,16 +92,14 @@ describe("catch-up failure and confirmation boundaries", () => {
     const hashes: string[] = [];
     const transactions: string[] = [];
     try {
-      for (let i = 0; i < 12; i++) {
+      for (let i = 0; i < 4; i++) {
         const item = await loop.next();
         if (item.done) throw new Error("monitor ended unexpectedly");
         expect(completeRangeFetched).toBe(true);
         hashes.push(item.value.blockHash);
         for (const event of item.value.events) transactions.push(event.txId!);
       }
-      expect(hashes).toEqual(
-        Array.from({ length: 12 }, (_, i) => `hash-${i + 1}`)
-      );
+      expect(hashes).toEqual(["hash-1", "hash-4", "hash-7", "hash-12"]);
       expect(transactions).toEqual(["tx-1", "tx-4", "tx-7", "tx-12"]);
       const requests = provider.getLogs.mock.calls.map(([filter]) => [
         filter.fromBlock,
@@ -175,13 +173,13 @@ describe("catch-up failure and confirmation boundaries", () => {
     const hashes: string[] = [];
     const transactions: string[] = [];
     try {
-      for (let i = 0; i < 16; i++) {
+      for (let i = 0; i < 2; i++) {
         const item = await loop.next();
         if (item.done) throw new Error("monitor ended unexpectedly");
         hashes.push(item.value.blockHash);
         for (const event of item.value.events) transactions.push(event.txId!);
       }
-      expect(hashes).toEqual(Array.from({ length: 16 }, (_, i) => `hash-${i}`));
+      expect(hashes).toEqual(["hash-0", "hash-15"]);
       expect(transactions).toEqual(["tx-0", "tx-15"]);
       expect(provider.getLogs).toHaveBeenCalledTimes(1);
       expect(provider.getLogs).toHaveBeenCalledWith(

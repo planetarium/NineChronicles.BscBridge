@@ -2,6 +2,7 @@ import { promises as fs } from "fs";
 import { tmpdir } from "os";
 import { join } from "path";
 import { ethers } from "ethers";
+import { PrimaryRpcProvider } from "../../src/primary-rpc-provider";
 import { BscBurnEventMonitor } from "../../src/monitors/bsc-burn-event-monitor";
 import { BscBurnEventObserver } from "../../src/observers/burn-event-observer";
 import { Sqlite3MonitorStateStore } from "../../src/sqlite3-monitor-state-store";
@@ -98,9 +99,11 @@ describe("duplicate payout protection", () => {
       ""
     );
 
-  const start = async () => {
+  const start = async (
+    rpcProvider: ethers.providers.BaseProvider = provider as unknown as ethers.providers.BaseProvider
+  ) => {
     const loop = new BscBurnEventMonitor(
-      provider as unknown as ethers.providers.JsonRpcProvider,
+      rpcProvider,
       contract,
       await state.load("bsc"),
       10
@@ -121,7 +124,7 @@ describe("duplicate payout protection", () => {
     throw new Error("monitor did not reach target block");
   };
 
-  const restart = async () => {
+  const restart = async (rpcProvider?: ethers.providers.BaseProvider) => {
     for (const loop of loops.splice(0)) await loop.return?.(undefined as never);
     // A fresh connection and fresh observer must rely on committed rows, not
     // an in-memory dedup set. Closing SQLite drains its already queued work.
@@ -134,7 +137,7 @@ describe("duplicate payout protection", () => {
       planets,
       slack
     ).messagePendingTransactions();
-    return start();
+    return start(rpcProvider);
   };
 
   const expectPaidOnce = (ids: number[]) => {
@@ -205,6 +208,248 @@ describe("duplicate payout protection", () => {
     for (const store of openStores) store.close();
     jest.restoreAllMocks();
     await fs.rm(directory, { recursive: true, force: true });
+  });
+
+  // Keep the full ethers network selection and response formatting pipeline.
+  // Only the final JSON-RPC transport is replaced; neither provider.perform
+  // nor monitor/observer/SQLite methods are stubbed by these integration cases.
+  function dualRpc(
+    beforeRead: (
+      endpoint: "primary" | "secondary",
+      method: string,
+      params: any[]
+    ) => void,
+    secondaryLogs?: ethers.providers.Log[],
+    secondaryBranch = false,
+    tipIndex = 60
+  ) {
+    const calls: {
+      endpoint: "primary" | "secondary";
+      method: string;
+      params: any[];
+    }[] = [];
+    jest
+      .spyOn(ethers.providers.JsonRpcProvider.prototype, "send")
+      .mockImplementation(async function (
+        this: ethers.providers.JsonRpcProvider,
+        method: string,
+        params: any[]
+      ) {
+        const endpoint = this.connection.url.includes("primary")
+          ? "primary"
+          : "secondary";
+        calls.push({ endpoint, method, params });
+        if (calls.length > 1000)
+          throw new Error("dual RPC test budget exhausted");
+        beforeRead(endpoint, method, params);
+        if (method === "eth_chainId") return "0x38";
+        if (method === "net_version") return "56";
+        if (method === "eth_blockNumber")
+          return ethers.utils.hexValue(tipIndex);
+        if (method === "eth_getLogs") {
+          const filter = params[0];
+          const from = Number(BigInt(filter.fromBlock));
+          const to = Number(BigInt(filter.toBlock));
+          const source =
+            endpoint === "secondary" && secondaryLogs ? secondaryLogs : logs;
+          return source
+            .filter((log) => log.blockNumber >= from && log.blockNumber <= to)
+            .map((log) => ({
+              ...log,
+              blockNumber: ethers.utils.hexValue(log.blockNumber),
+              transactionIndex: ethers.utils.hexValue(log.transactionIndex),
+              logIndex: ethers.utils.hexValue(log.logIndex),
+            }));
+        }
+        if (
+          method === "eth_getBlockByNumber" ||
+          method === "eth_getBlockByHash"
+        ) {
+          let number = Number(BigInt(params[0]));
+          if (method === "eth_getBlockByHash" && number >= 20000)
+            number -= 20000;
+          const branchOffset =
+            endpoint === "secondary" && secondaryBranch && number >= 1
+              ? 20000
+              : 0;
+          return {
+            number: ethers.utils.hexValue(number),
+            hash: hash(number + branchOffset),
+            parentHash: hash(
+              Math.max(0, number - 1) +
+                (endpoint === "secondary" && secondaryBranch && number > 1
+                  ? 20000
+                  : 0)
+            ),
+            timestamp: "0x1",
+            nonce: "0x0000000000000000",
+            difficulty: "0x0",
+            gasLimit: "0x1c9c380",
+            gasUsed: "0x0",
+            miner: contract.address,
+            extraData: "0x",
+            transactions: [],
+          };
+        }
+        throw new Error(`unexpected RPC method: ${method}`);
+      });
+    return {
+      calls,
+      rpc: new PrimaryRpcProvider(
+        "https://primary.invalid",
+        "https://secondary.invalid",
+        {
+          expectedChainId: 56,
+          cooldownMs: 60000,
+        }
+      ),
+    };
+  }
+
+  it.each([
+    { status: 429, message: "request quota exhausted" },
+    { code: "TIMEOUT", message: "getLogs response timed out" },
+  ])(
+    "dual RPC: primary getLogs failure %j falls back without repeating payouts across a stale restart",
+    async (failure) => {
+      logs = [burn(1), burn(1), burn(2), burn(50)];
+      let failed = false;
+      const { rpc, calls } = dualRpc((endpoint, method, params) => {
+        if (
+          endpoint === "primary" &&
+          method === "eth_getLogs" &&
+          Number(BigInt(params[0].fromBlock)) > 0
+        ) {
+          failed = true;
+          throw failure;
+        }
+      });
+      await consumeThrough(await start(rpc), 50);
+      expect(failed).toBe(true);
+      expectPaidOnce([1, 2, 50]);
+      expect(await state.load("bsc")).toEqual({
+        blockHash: hash(50),
+        txId: hash(10050),
+      });
+      await state.store("bsc", { blockHash: hash(0), txId: null });
+      await consumeThrough(await restart(rpc), 50);
+      expectPaidOnce([1, 2, 50]);
+      expect(
+        calls.filter(
+          (call) =>
+            call.endpoint === "primary" &&
+            call.method === "eth_getLogs" &&
+            Number(BigInt(call.params[0].fromBlock)) > 0
+        )
+      ).toHaveLength(1);
+      expect(
+        calls.filter(
+          (call) =>
+            call.endpoint === "secondary" &&
+            call.method === "eth_getLogs" &&
+            Number(BigInt(call.params[0].fromBlock)) === 1
+        )
+      ).toHaveLength(2);
+    }
+  );
+
+  it("dual RPC: 10,000 empty blocks use range-sized RPC traffic including chain probes", async () => {
+    const { rpc, calls } = dualRpc(() => undefined, undefined, false, 10010);
+    const loop = await start(rpc);
+    const checkpoint = await loop.next();
+    if (checkpoint.done) throw new Error("monitor ended at its checkpoint");
+    await observer.notify(checkpoint.value);
+    const scanStart = calls.length;
+    const persist = jest.spyOn(state, "store");
+    for (let range = 1; range <= 10; range++) {
+      const item = await loop.next();
+      if (item.done)
+        throw new Error("monitor ended before the range checkpoint");
+      expect(item.value).toEqual({ blockHash: hash(range * 1000), events: [] });
+      await observer.notify(item.value);
+    }
+    const scanCalls = calls.slice(scanStart);
+    const counts: Record<string, number> = {};
+    for (const call of scanCalls)
+      counts[call.method] = (counts[call.method] ?? 0) + 1;
+    expect(counts.eth_getLogs).toBe(10);
+    expect(counts.eth_getBlockByNumber).toBe(30);
+    expect(scanCalls.every((call) => call.endpoint === "primary")).toBe(true);
+    expect(persist).toHaveBeenCalledTimes(10);
+    expect(await state.load("bsc")).toEqual({
+      blockHash: hash(10000),
+      txId: null,
+    });
+    expectPaidOnce([]);
+    // Include chain probes: each block/log operation validates before network
+    // selection and dispatch, while block-number reads share their probe.
+    expect(counts).toEqual({
+      eth_chainId: 90,
+      eth_blockNumber: 10,
+      eth_getLogs: 10,
+      eth_getBlockByNumber: 30,
+    });
+    expect(scanCalls).toHaveLength(140);
+  });
+
+  it("dual RPC: an anchor failure after a payout rejects stale cached logs from the other branch", async () => {
+    logs = [burn(1), burn(2), burn(50)];
+    const secondaryLogs = [burn(2, 1), burn(3), burn(50)].map((log) => ({
+      ...log,
+      blockHash: hash(20000 + log.blockNumber),
+    }));
+    let failed = false;
+    const { rpc, calls } = dualRpc(
+      (endpoint, method, params) => {
+        if (
+          endpoint === "primary" &&
+          method === "eth_getBlockByNumber" &&
+          Number(BigInt(params[0])) === 50 &&
+          payouts.length === 1 &&
+          !failed
+        ) {
+          failed = true;
+          throw { code: "TIMEOUT", message: "primary anchor read failed" };
+        }
+      },
+      secondaryLogs,
+      true
+    );
+    const loop = await start(rpc);
+    await consumeThrough(loop, 1);
+    for (const block of [2, 3, 50]) {
+      const item = await loop.next();
+      if (item.done) throw new Error("monitor ended before branch recovery");
+      expect(item.value.blockHash).toBe(hash(20000 + block));
+      expect(
+        item.value.events.every(
+          (event) => event.blockHash === item.value.blockHash
+        )
+      ).toBe(true);
+      await observer.notify(item.value);
+    }
+    expect(failed).toBe(true);
+    expectPaidOnce([1, 3, 50]);
+    expect(
+      calls.some(
+        (call) =>
+          call.endpoint === "secondary" &&
+          call.method === "eth_getLogs" &&
+          Number(BigInt(call.params[0].fromBlock)) === 2
+      )
+    ).toBe(true);
+    // Even an old persisted cursor on the secondary branch must consult the
+    // reopened payout DB before re-included transactions reach transfer().
+    await state.store("bsc", { blockHash: hash(0), txId: null });
+    const resumed = await restart(rpc);
+    await resumed.next(); // empty persisted checkpoint
+    for (const block of [2, 3, 50]) {
+      const item = await resumed.next();
+      if (item.done) throw new Error("monitor ended before stale restart");
+      expect(item.value.blockHash).toBe(hash(20000 + block));
+      await observer.notify(item.value);
+    }
+    expectPaidOnce([1, 3, 50]);
   });
 
   it("shared: pays each source transaction once across empty and occupied blocks", async () => {
