@@ -2,14 +2,6 @@ import { Monitor } from ".";
 import { TransactionLocation } from "../types/transaction-location";
 import { BlockHash } from "../types/block-hash";
 
-function delay(ms: number): Promise<void> {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve();
-    }, ms);
-  });
-}
-
 type ProcessRemainsResult<TEventData> = {
   nextBlockIndex: number;
   remainedEvents: RemainedEvent<TEventData>[];
@@ -51,56 +43,75 @@ export abstract class TriggerableMonitor<TEventData> extends Monitor<
     blockHash: BlockHash;
     events: (TEventData & TransactionLocation)[];
   }> {
-    if (this._latestTransactionLocation !== null) {
-      const { nextBlockIndex, remainedEvents } = await this.processRemains(
-        this._latestTransactionLocation
-      );
-
-      for (const remainedEvent of remainedEvents) {
-        yield remainedEvent;
-      }
-
-      this.latestBlockNumber = nextBlockIndex;
-    } else {
-      this.latestBlockNumber = await this.getTipIndex();
-    }
-
-    while (true) {
+    while (!this.stopped) {
       try {
-        const tipIndex = await this.getTipIndex();
-        this.debug("Try to check trigger at", this.latestBlockNumber + 1);
-        if (this.latestBlockNumber + 1 <= tipIndex) {
-          const backlogSize = tipIndex - this.latestBlockNumber;
+        let waitAtTip = false;
+        // Keep tip, headers and logs on the same endpoint. A slow but healthy
+        // secondary may need longer than the normal primary cooldown to finish.
+        const releaseSession = await this.beginReadSession();
+        try {
+          if (this.stopped) return;
+          // Startup reads need the same retry/backoff as later ranges. A single
+          // unavailable checkpoint RPC must not permanently close the iterator.
+          if (this.latestBlockNumber === undefined) {
+            if (this._latestTransactionLocation !== null) {
+              const { nextBlockIndex, remainedEvents } =
+                await this.processRemains(this._latestTransactionLocation);
+              for (const remainedEvent of remainedEvents) {
+                if (this.stopped) return;
+                yield remainedEvent;
+              }
+              this.latestBlockNumber = nextBlockIndex;
+            } else {
+              this.latestBlockNumber = await this.getTipIndex();
+            }
+            this.consecutiveErrorCount = 0;
+          }
+          const tipIndex = await this.getTipIndex();
+          if (this.stopped) return;
+          this.debug("Try to check trigger at", this.latestBlockNumber + 1);
+          if (this.latestBlockNumber + 1 <= tipIndex) {
+            const backlogSize = tipIndex - this.latestBlockNumber;
 
-          if (backlogSize > this._catchUpThresholdBlocks) {
-            yield* this.catchUp(this.latestBlockNumber + 1, tipIndex);
+            if (backlogSize > this._catchUpThresholdBlocks) {
+              yield* this.catchUp(this.latestBlockNumber + 1, tipIndex);
+              waitAtTip =
+                this.shouldThrottleAtTip() &&
+                this.latestBlockNumber >= tipIndex;
+            } else {
+              const trigerredBlockIndexes = this.triggerredBlocks(
+                this.latestBlockNumber + 1
+              );
+
+              for (const blockIndex of trigerredBlockIndexes) {
+                this.debug("Execute triggerred block #", blockIndex);
+                const blockHash = await this.getBlockHash(blockIndex);
+
+                const events = await this.getEvents(blockIndex);
+                if (this.stopped) return;
+                yield { blockHash, events };
+              }
+
+              this.latestBlockNumber += 1;
+            }
           } else {
-            const trigerredBlockIndexes = this.triggerredBlocks(
-              this.latestBlockNumber + 1
+            this.debug(
+              `Skip check trigger current: ${this.latestBlockNumber} / tip: ${tipIndex}`
             );
 
-            for (const blockIndex of trigerredBlockIndexes) {
-              this.debug("Execute triggerred block #", blockIndex);
-              const blockHash = await this.getBlockHash(blockIndex);
-
-              yield {
-                blockHash,
-                events: await this.getEvents(blockIndex),
-              };
-            }
-
-            this.latestBlockNumber += 1;
+            waitAtTip = true;
           }
-        } else {
-          this.debug(
-            `Skip check trigger current: ${this.latestBlockNumber} / tip: ${tipIndex}`
-          );
 
-          await delay(this._delayMilliseconds);
+          this.consecutiveErrorCount = 0;
+        } finally {
+          releaseSession();
         }
-
-        this.consecutiveErrorCount = 0;
+        // A fast chain can advance during every RPC round. Still wait after
+        // draining the observed tip, so normal traffic is time-bounded instead
+        // of chasing each newly produced block. Release the endpoint first.
+        if (waitAtTip) await this.wait(this._delayMilliseconds);
       } catch (error) {
+        if (this.stopped) return;
         this.consecutiveErrorCount += 1;
         const backoffDelay = Math.min(
           this._delayMilliseconds * 2 ** (this.consecutiveErrorCount - 1),
@@ -112,7 +123,7 @@ export abstract class TriggerableMonitor<TEventData> extends Monitor<
           error
         );
 
-        await delay(backoffDelay);
+        await this.wait(backoffDelay);
       }
     }
   }
@@ -159,7 +170,16 @@ export abstract class TriggerableMonitor<TEventData> extends Monitor<
       anchorIndex === undefined
         ? undefined
         : await this.getBlockHash(anchorIndex);
+    const readEpoch = this.getReadEpoch();
+    const assertReadEpoch = () => {
+      // Comparing endpoint identities only at the boundaries misses A -> B -> A.
+      // Any intervening dispatch to another endpoint invalidates cached logs.
+      if (this.getReadEpoch() !== readEpoch) {
+        throw new Error("RPC endpoint changed while reading burn events");
+      }
+    };
     const assertAnchor = async () => {
+      assertReadEpoch();
       if (
         anchorHash !== undefined &&
         (await this.getBlockHash(anchorIndex)) !== anchorHash
@@ -168,6 +188,7 @@ export abstract class TriggerableMonitor<TEventData> extends Monitor<
           `Chain changed while reading burn events at block ${anchorIndex}`
         );
       }
+      assertReadEpoch();
     };
     const eventsByBlockIndex =
       triggeredIndexes.length > 0
@@ -192,6 +213,7 @@ export abstract class TriggerableMonitor<TEventData> extends Monitor<
             `Burn logs disagree with block hash at ${blockIndex}`
           );
         }
+        if (this.stopped) return;
         yield { blockHash, events };
         yieldedEvents = true;
       }
@@ -215,6 +237,7 @@ export abstract class TriggerableMonitor<TEventData> extends Monitor<
         // Persist the empty suffix once. Never overwrite a last-block event
         // checkpoint with txId=null when no empty suffix exists.
         await assertAnchor();
+        if (this.stopped) return;
         yield { blockHash: anchorHash, events: [] };
       }
       this.latestBlockNumber = batchToBlockIndex;
@@ -225,6 +248,19 @@ export abstract class TriggerableMonitor<TEventData> extends Monitor<
   // Subclasses with ordered, one-block triggers may persist an entire empty
   // suffix as one checkpoint instead of emitting every empty block.
   protected coalesceEmptyBlocks(): boolean {
+    return false;
+  }
+
+  /** A monotonically increasing routing version, when the provider supports it. */
+  protected getReadEpoch(): number | undefined {
+    return undefined;
+  }
+
+  protected async beginReadSession(): Promise<() => void> {
+    return () => undefined;
+  }
+
+  protected shouldThrottleAtTip(): boolean {
     return false;
   }
 

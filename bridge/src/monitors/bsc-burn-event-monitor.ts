@@ -3,6 +3,7 @@ import { TriggerableMonitor } from "./triggerable-monitor";
 import { ContractDescription } from "../types/contract-description";
 import { TransactionLocation } from "../types/transaction-location";
 import { ethers } from "ethers";
+import { PrimaryRpcProvider } from "../primary-rpc-provider";
 
 const BURN_EVENT_SIG = "SentToLibPlanet(address,uint256,bytes32)";
 
@@ -11,6 +12,7 @@ const BURN_EVENT_SIG = "SentToLibPlanet(address,uint256,bytes32)";
 // cap the block range (and/or result size) of a single `getLogs` call, so
 // this keeps each request well within typical limits.
 const MAX_LOGS_RANGE_SIZE = 1000;
+const MAX_REORG_RECOVERY_DEPTH = 1000;
 
 export class BscBurnEventMonitor extends TriggerableMonitor<EventData> {
   private readonly _provider: ethers.providers.BaseProvider;
@@ -37,20 +39,97 @@ export class BscBurnEventMonitor extends TriggerableMonitor<EventData> {
     this._confirmations = confirmations;
   }
   protected async processRemains(transactionLocation: TransactionLocation) {
-    const blockIndex = await this.getBlockIndex(transactionLocation.blockHash);
-    const events = await this.getEvents(blockIndex);
-    const returnEvents = [];
-    let skip = true;
-    for (const event of events) {
-      if (skip) {
-        if (event.txId === transactionLocation.txId) {
-          skip = false;
-        }
-        continue;
-      } else {
-        returnEvents.push(event);
-      }
+    const savedBlock = await this.getRecoveryBlock(
+      transactionLocation.blockHash
+    );
+    // The first successful dispatch selects this session's endpoint. Capture
+    // its epoch afterward so selecting a healthy fallback is not a change
+    // within the recovery read itself.
+    const readEpoch = this.getReadEpoch();
+    const blockIndex = savedBlock.number;
+    const tipIndex = await this.getTipIndex();
+    if (
+      !Number.isSafeInteger(tipIndex) ||
+      tipIndex < blockIndex + this._confirmations
+    ) {
+      // Also wait before orphan recovery: a lagging endpoint must not move
+      // the persisted checkpoint backward before it confirms this height.
+      throw new Error(
+        `Cannot resume checkpoint block ${blockIndex}: RPC tip ${tipIndex} has fewer than ${this._confirmations} confirmations`
+      );
     }
+    const anchor = await this.getRecoveryBlock(blockIndex);
+    const assertStableRead = async () => {
+      const currentAnchor = await this.getRecoveryBlock(blockIndex);
+      if (
+        currentAnchor.hash !== anchor.hash ||
+        this.getReadEpoch() !== readEpoch
+      ) {
+        throw new Error(
+          `Chain or RPC endpoint changed while resuming block ${blockIndex}`
+        );
+      }
+    };
+
+    if (savedBlock.hash !== anchor.hash) {
+      let ancestor = savedBlock;
+      let depth = 0;
+      while (
+        ancestor.hash !== (await this.getRecoveryBlock(ancestor.number)).hash
+      ) {
+        if (depth >= MAX_REORG_RECOVERY_DEPTH || ancestor.number === 0) {
+          throw new Error(
+            `Cannot recover orphan checkpoint: no common ancestor within ${MAX_REORG_RECOVERY_DEPTH} blocks`
+          );
+        }
+        if (!ancestor.parentHash) {
+          throw new Error(
+            `Cannot recover orphan checkpoint: parent hash unavailable at block ${ancestor.number}`
+          );
+        }
+        const parent = await this.getRecoveryBlock(ancestor.parentHash);
+        if (parent.number !== ancestor.number - 1) {
+          throw new Error(
+            `Cannot recover orphan checkpoint: invalid parent height at block ${ancestor.number}`
+          );
+        }
+        ancestor = parent;
+        depth += 1;
+      }
+      await assertStableRead();
+      // Replaying the replaced branch relies on the observer's persisted
+      // source-transaction history in the same database to suppress payouts
+      // for transactions that were already processed and are included again.
+      return {
+        nextBlockIndex: ancestor.number + this._confirmations,
+        remainedEvents: [{ blockHash: ancestor.hash, events: [] }],
+      };
+    }
+
+    const events = await this.getEvents(blockIndex);
+    if (
+      events.some(
+        (event) =>
+          event.blockHash !== anchor.hash || event.blockNumber !== blockIndex
+      )
+    ) {
+      throw new Error(`Burn logs disagree with checkpoint block ${blockIndex}`);
+    }
+    let returnEvents = events;
+    if (transactionLocation.txId !== null) {
+      const cursorIndex = events.findIndex(
+        (event) => event.txId === transactionLocation.txId
+      );
+      if (cursorIndex === -1) {
+        throw new Error(
+          `Checkpoint transaction ${transactionLocation.txId} is missing from block ${blockIndex}`
+        );
+      }
+      returnEvents = events.slice(cursorIndex + 1);
+    }
+    // A null cursor proves no transaction was saved, not that the RPC logs
+    // are empty. Replay them; the same-database observer history deduplicates.
+    await assertStableRead();
 
     return {
       nextBlockIndex: blockIndex + this._confirmations,
@@ -63,7 +142,49 @@ export class BscBurnEventMonitor extends TriggerableMonitor<EventData> {
     };
   }
 
+  protected getReadEpoch(): number | undefined {
+    return this._provider instanceof PrimaryRpcProvider
+      ? this._provider.readEpoch
+      : undefined;
+  }
+
+  protected async beginReadSession(): Promise<() => void> {
+    return this._provider instanceof PrimaryRpcProvider
+      ? this._provider.beginReadSession()
+      : () => undefined;
+  }
+
+  private async getRecoveryBlock(
+    indexOrHash: number | string
+  ): Promise<ethers.providers.Block> {
+    const block = await this._provider.getBlock(indexOrHash);
+    if (
+      !block ||
+      !Number.isSafeInteger(block.number) ||
+      block.number < 0 ||
+      !block.hash
+    ) {
+      throw new Error(
+        `Cannot recover checkpoint: block header unavailable or invalid for ${indexOrHash}`
+      );
+    }
+    if (
+      typeof indexOrHash === "string"
+        ? block.hash !== indexOrHash
+        : block.number !== indexOrHash
+    ) {
+      throw new Error(
+        `Cannot recover checkpoint: block header disagrees with ${indexOrHash}`
+      );
+    }
+    return block;
+  }
+
   protected coalesceEmptyBlocks(): boolean {
+    return true;
+  }
+
+  protected shouldThrottleAtTip(): boolean {
     return true;
   }
 

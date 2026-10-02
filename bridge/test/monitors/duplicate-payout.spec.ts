@@ -342,6 +342,8 @@ describe("duplicate payout protection", () => {
             Number(BigInt(call.params[0].fromBlock)) > 0
         )
       ).toHaveLength(1);
+      // The failed primary session is retried on the secondary; the stale
+      // restart performs the second secondary range read.
       expect(
         calls.filter(
           (call) =>
@@ -381,15 +383,15 @@ describe("duplicate payout protection", () => {
       txId: null,
     });
     expectPaidOnce([]);
-    // Include chain probes: each block/log operation validates before network
-    // selection and dispatch, while block-number reads share their probe.
+    // Include chain probes and nine new sessions (the first lease was acquired
+    // before scanStart while resuming the persisted checkpoint).
     expect(counts).toEqual({
-      eth_chainId: 90,
+      eth_chainId: 99,
       eth_blockNumber: 10,
       eth_getLogs: 10,
       eth_getBlockByNumber: 30,
     });
-    expect(scanCalls).toHaveLength(140);
+    expect(scanCalls).toHaveLength(149);
   });
 
   it("dual RPC: an anchor failure after a payout rejects stale cached logs from the other branch", async () => {
