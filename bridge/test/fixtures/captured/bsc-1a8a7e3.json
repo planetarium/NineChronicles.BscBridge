@@ -1,0 +1,177 @@
+{
+  "provenance": {
+    "kind": "captured",
+    "description": "BSC mainnet receipt and complete 13-block receipt sets captured from two public RPC endpoints; every receipt transaction hash matched the block transaction list. Routing uses the public mainnet planet registry, not a live deployment environment snapshot. Historical tip is the actual burn block + 11, not the current chain tip.",
+    "capturedAt": "2026-10-02T08:24:00.253636+00:00",
+    "chainId": 56,
+    "transactionUrl": "https://bscscan.com/tx/0x1a8a7e3abf55edfb9e71bc501059faafb37f8456339d5a0347eb62a8f507bba5",
+    "rpcSources": [
+      "https://bsc-dataseed.bnbchain.org",
+      "https://bsc-dataseed1.defibit.io"
+    ],
+    "routingSource": "https://planets.nine-chronicles.com/planets",
+    "receiptCount": 1125,
+    "blockReceiptSummaries": [
+      {
+        "blockNumber": 124654859,
+        "transactionCount": 47,
+        "canonicalReceiptsSha256": "445962330800a9061dffcb8b7a06627bed6cf9a6af368b54ee1b15c13bf83476"
+      },
+      {
+        "blockNumber": 124654860,
+        "transactionCount": 93,
+        "canonicalReceiptsSha256": "2c3530bd2172e92f443d72e86bf6e18da78742bee2f0b8bca15d5f4473e3b78d"
+      },
+      {
+        "blockNumber": 124654861,
+        "transactionCount": 79,
+        "canonicalReceiptsSha256": "ca5cb45d5322d0a86d02dd1d2483a468ccb2417233bfedd8dbfeaad4fc4f917e"
+      },
+      {
+        "blockNumber": 124654862,
+        "transactionCount": 75,
+        "canonicalReceiptsSha256": "b6edad372798b3e1b1539390ac4bfd74468b1ea2d7e06f2d5e833c4667017b76"
+      },
+      {
+        "blockNumber": 124654863,
+        "transactionCount": 71,
+        "canonicalReceiptsSha256": "3ebebd967e94a0f1b730dbd4f325b2b771220abf92ec9aae3f3dc893cd3f0a27"
+      },
+      {
+        "blockNumber": 124654864,
+        "transactionCount": 106,
+        "canonicalReceiptsSha256": "76cfcb6973545f0c2ff632f07281b6aad7e6e741051fa86a9eac19174b8fe6ba"
+      },
+      {
+        "blockNumber": 124654865,
+        "transactionCount": 88,
+        "canonicalReceiptsSha256": "330beb491dca6632b7ea5200324a038b5253c82a8ae87f08a4ab70832e9f48ee"
+      },
+      {
+        "blockNumber": 124654866,
+        "transactionCount": 83,
+        "canonicalReceiptsSha256": "0f26f230171971ef14ea4bd4031c8628254a5754e73dd8c254c84459ff4f45e1"
+      },
+      {
+        "blockNumber": 124654867,
+        "transactionCount": 82,
+        "canonicalReceiptsSha256": "4eb030bde800a7c947932245188c3fb5eecd1c53f5e5b8e0e0c4a71a9c94b567"
+      },
+      {
+        "blockNumber": 124654868,
+        "transactionCount": 97,
+        "canonicalReceiptsSha256": "dd8de738e797fa909b7b820697030146c6076797fad6010ee9a9519c0d2bd730"
+      },
+      {
+        "blockNumber": 124654869,
+        "transactionCount": 91,
+        "canonicalReceiptsSha256": "3d5452c4457fdb5404820327e431d2ab08be80ba6226905779ea53decd9d9436"
+      },
+      {
+        "blockNumber": 124654870,
+        "transactionCount": 90,
+        "canonicalReceiptsSha256": "c9bd037b5e710c55f552343561f5b522deae7d2b309dd1cc254332e69269e95b"
+      },
+      {
+        "blockNumber": 124654871,
+        "transactionCount": 123,
+        "canonicalReceiptsSha256": "a00363e55218427048c5e7a4ee0349ffaaf951dcc5a3503fa0ff0faa2e78c9ec"
+      }
+    ]
+  },
+  "contractAddress": "0xae8f4354d2c5175ae1c13f7f849b50e5f23aee5c",
+  "planetIds": {
+    "odin": "0x000000000000",
+    "heimdall": "0x000000000001"
+  },
+  "heimdallVault": "0x1c2ae97380CFB4F732049e454F6D9A25D4967c6f",
+  "confirmations": 10,
+  "tip": 124654871,
+  "checkpoint": {
+    "blockHash": "0x48b45415a229952c9b73d76a0130f3364846eb0a786bf6bfc0fdd1cb78037346",
+    "txId": null
+  },
+  "headers": [
+    {
+      "number": 124654859,
+      "hash": "0x48b45415a229952c9b73d76a0130f3364846eb0a786bf6bfc0fdd1cb78037346",
+      "parentHash": "0x9bd7da75939e36065637770b585f484b8ac6da723fb5b1baf64789974574dfe0"
+    },
+    {
+      "number": 124654860,
+      "hash": "0xb866aa098ca5e44412c174dee207fb153e87c62429510efb7396f1c262c6adf9",
+      "parentHash": "0x48b45415a229952c9b73d76a0130f3364846eb0a786bf6bfc0fdd1cb78037346"
+    },
+    {
+      "number": 124654861,
+      "hash": "0x2308701545cf15ae2025770f44ddf35b22e1c6a0f815c407a1ef2837f2c94cde",
+      "parentHash": "0xb866aa098ca5e44412c174dee207fb153e87c62429510efb7396f1c262c6adf9"
+    },
+    {
+      "number": 124654862,
+      "hash": "0x58ee551dd4a6d9a5c73f6d24fb88cfa4cce55835edb9ce93e1dd2abdf9779be8",
+      "parentHash": "0x2308701545cf15ae2025770f44ddf35b22e1c6a0f815c407a1ef2837f2c94cde"
+    },
+    {
+      "number": 124654863,
+      "hash": "0x1056cfb7d28844a3e8bf7bf77e64ccd6820cc3e417314ea695eaa1ea40b8a29a",
+      "parentHash": "0x58ee551dd4a6d9a5c73f6d24fb88cfa4cce55835edb9ce93e1dd2abdf9779be8"
+    },
+    {
+      "number": 124654864,
+      "hash": "0x333f2fb9493c6b1e669609579457a64fad9e2871c5c06f90e2a41150b474befb",
+      "parentHash": "0x1056cfb7d28844a3e8bf7bf77e64ccd6820cc3e417314ea695eaa1ea40b8a29a"
+    },
+    {
+      "number": 124654865,
+      "hash": "0xebbf6485df620009e420b43e6028de56d9790cd6a96b3bc6f103a7a0771f4788",
+      "parentHash": "0x333f2fb9493c6b1e669609579457a64fad9e2871c5c06f90e2a41150b474befb"
+    },
+    {
+      "number": 124654866,
+      "hash": "0xecf0a93a950935b06f99cfefbff4702ebb44254fa60db03d1da47c3700daba8d",
+      "parentHash": "0xebbf6485df620009e420b43e6028de56d9790cd6a96b3bc6f103a7a0771f4788"
+    },
+    {
+      "number": 124654867,
+      "hash": "0x15382a4d6d4cf9de2cc26e341fce1995b390a16d51d30a9ea6a320fa70b430ae",
+      "parentHash": "0xecf0a93a950935b06f99cfefbff4702ebb44254fa60db03d1da47c3700daba8d"
+    },
+    {
+      "number": 124654868,
+      "hash": "0x58075021fddace241616bc4bd6a39df17100daba1572ef81cb8847ec8d64b9e4",
+      "parentHash": "0x15382a4d6d4cf9de2cc26e341fce1995b390a16d51d30a9ea6a320fa70b430ae"
+    },
+    {
+      "number": 124654869,
+      "hash": "0x5d10daadfc0ff497ed7c41ff9964a00d00cdaf4704b36cdff70eb411a5b2c5f4",
+      "parentHash": "0x58075021fddace241616bc4bd6a39df17100daba1572ef81cb8847ec8d64b9e4"
+    },
+    {
+      "number": 124654870,
+      "hash": "0xbc58fef81d892f08b93dfac9c5e3a9bef952b35b9a02daf09ded8f0e2b96f0cc",
+      "parentHash": "0x5d10daadfc0ff497ed7c41ff9964a00d00cdaf4704b36cdff70eb411a5b2c5f4"
+    },
+    {
+      "number": 124654871,
+      "hash": "0xeb72b125f9d50def349e3dd7a16cee83e6ea7329452f817b0777aee721c897d3",
+      "parentHash": "0xbc58fef81d892f08b93dfac9c5e3a9bef952b35b9a02daf09ded8f0e2b96f0cc"
+    }
+  ],
+  "logs": [
+    {
+      "address": "0xae8f4354d2c5175ae1c13f7f849b50e5f23aee5c",
+      "topics": [
+        "0x1668244e8b195ce5eb25bb3d8fb2c454054b2f5372e720012da0ff6329f530f2",
+        "0x00000000000000000000000001bd2c05c8be20afc182f6a3e3be159151e79719"
+      ],
+      "data": "0x000000000000000000000000000000000000000000000058535b737e1f740000000000000001eee0f468d0214c389693b119cec2094af727574f000000000000",
+      "blockHash": "0xb866aa098ca5e44412c174dee207fb153e87c62429510efb7396f1c262c6adf9",
+      "transactionHash": "0x1a8a7e3abf55edfb9e71bc501059faafb37f8456339d5a0347eb62a8f507bba5",
+      "removed": false,
+      "blockNumber": 124654860,
+      "transactionIndex": 60,
+      "logIndex": 380
+    }
+  ]
+}

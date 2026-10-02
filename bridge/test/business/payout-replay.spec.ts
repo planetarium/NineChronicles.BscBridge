@@ -1,6 +1,8 @@
 import { readFileSync } from "fs";
+import { join } from "path";
 import { ethers } from "ethers";
 import { TransactionStatus } from "../../src/types/transaction-status";
+
 import {
   ReplayFixture,
   expectedPayouts,
@@ -8,6 +10,11 @@ import {
   assertBusinessResult,
   validateFixture,
 } from "./replay";
+
+// The frozen implementation commits a SQLite checkpoint for every empty block.
+// Three 1,030-block replays can exceed Jest's 5s default on slower disks; the
+// harness still bounds deliveries/RPCs and rejects unexpected retry waits.
+jest.setTimeout(30000);
 
 const hash = (n: number) =>
   ethers.utils.hexZeroPad(ethers.utils.hexlify(n), 32);
@@ -234,21 +241,20 @@ describe("offline business equivalence against deployed f352576", () => {
   });
 
   // Local files only. The harness never fetches an endpoint or sends a payout.
-  const capturePath = process.env.BSC_REPLAY_FIXTURE;
-  (capturePath ? it : it.skip)(
-    "replays an explicitly supplied historical capture",
-    async () => {
-      const capture = JSON.parse(
-        readFileSync(capturePath!, "utf8")
-      ) as ReplayFixture;
-      expect(capture.provenance.kind).toBe("captured");
-      const expected = expectedPayouts(capture);
-      expect(expected.length).toBeGreaterThan(0);
-      const old = await replay(capture, "baseline");
-      const patched = await replay(capture, "patched");
-      assertBusinessResult(old, expected, capture);
-      assertBusinessResult(patched, expected, capture);
-      expect(patched).toEqual(old);
-    }
-  );
+  const capturePath =
+    process.env.BSC_REPLAY_FIXTURE ??
+    join(__dirname, "../fixtures/captured/bsc-1a8a7e3.json");
+  it("replays the checked-in historical capture or an explicit local override", async () => {
+    const capture = JSON.parse(
+      readFileSync(capturePath!, "utf8")
+    ) as ReplayFixture;
+    expect(capture.provenance.kind).toBe("captured");
+    const expected = expectedPayouts(capture);
+    expect(expected.length).toBeGreaterThan(0);
+    const old = await replay(capture, "baseline");
+    const patched = await replay(capture, "patched");
+    assertBusinessResult(old, expected, capture);
+    assertBusinessResult(patched, expected, capture);
+    expect(patched).toEqual(old);
+  });
 });

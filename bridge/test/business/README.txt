@@ -27,7 +27,7 @@ Deliberately corrupted payout lists prove wrong amounts/recipients/memos,
 omissions and duplicate payouts fail. The baseline's known null-cursor omission
 is asserted as a historical defect, not accepted as correct business behavior.
 
-Default cases are SYNTHETIC, not captured production history:
+The generated cases are SYNTHETIC, not captured production history:
 - Legacy destination, explicit Odin and Heimdall vault/user-memo routing.
 - 18-to-2 decimal conversion and truncation, minimum cent, larger amounts.
 - Near-tip scanning, multiple transactions in one block, 1,000-block boundaries,
@@ -41,7 +41,11 @@ Historical captures
   BSC_REPLAY_FIXTURE=/absolute/path/capture.json yarn jest \
     --config=bridge.jest.config.js --runInBand test/business/payout-replay.spec.ts
 
-Without this variable the historical case is explicitly SKIPPED, not passed.
+Without this variable the historical case uses the checked-in mainnet capture
+test/fixtures/captured/bsc-1a8a7e3.json and always runs in CI. The separate
+historical-burn-replay.spec.ts also locks its literal expected payout and verifies
+the confirmation boundary and a restart after the captured burn. See the
+capture README for source, completeness checks and routing assumptions.
 The JSON file follows the exported ReplayFixture interface in replay.ts:
 - provenance: { kind: "captured", description: "source, chain ID, capture date,
   block interval, independent log-completeness checks" }
