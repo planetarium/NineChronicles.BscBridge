@@ -1,0 +1,31 @@
+{
+  "repository": "planetarium/NineChronicles.BscBridge",
+  "commit": "f3525760157ec33cc61a9df3355e479e4be5fcf2",
+  "files": [
+    {
+      "path": "monitors/index.ts",
+      "originalSha256": "dbcef40b7433c88a861f115ab12ccc34397d8add73cea8a81de1878d5d315162",
+      "canonicalSha256": "28e479d8730e01fb3d6c461a83e9ab6005afdf0a41679dce09737082646a91dd"
+    },
+    {
+      "path": "monitors/triggerable-monitor.ts",
+      "originalSha256": "4118dddb5a3e628f4c3ffd3268564ccaa0c2abb8c60d5e44d6bdf4fa54b2b2c6",
+      "canonicalSha256": "3bc0ecd2aee075e927b87813a2f3cfcb74220d13583504e862d9d8024582d43d"
+    },
+    {
+      "path": "monitors/bsc-burn-event-monitor.ts",
+      "originalSha256": "cf557173ec3a0aefe3d8924a618cf8ebffbfd7a02e22b3e6ffdcac1bacbff69c",
+      "canonicalSha256": "ca971afc2592766f74459e46236977e9db833aa70b90ccfbd760b2550bd0f106"
+    },
+    {
+      "path": "observers/burn-event-observer.ts",
+      "originalSha256": "17b937593cd7feab766af70e0946976272683e510567eefda6fc0508d046f41c",
+      "canonicalSha256": "bdafe78213fa1d43cff125f5c34bd04f3ee9a27daaec2ea6a1f8f0c839fcd0eb"
+    },
+    {
+      "path": "multi-planetary.ts",
+      "originalSha256": "ce05bf36877abb7bc2532fa6ed789903d6bc8789492417f706567aee791cc0da",
+      "canonicalSha256": "6304df83b0628b0a4323cf4104ed44dd13b8c72b78b03055dc67d196d0f70ee0"
+    }
+  ]
+}
