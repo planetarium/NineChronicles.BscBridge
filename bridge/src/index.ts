@@ -18,6 +18,7 @@ import { IExchangeHistoryStore } from "./interfaces/exchange-history-store";
 import { Sqlite3ExchangeHistoryStore } from "./sqlite3-exchange-history-store";
 import consoleStamp from "console-stamp";
 import { Integration } from "./integrations";
+import { createFailoverClient } from "./failover-headless-graphql-client";
 import { PagerDutyIntegration } from "./integrations/pagerduty";
 import { SlackMessageSender } from "./slack-message-sender";
 import {
@@ -241,11 +242,6 @@ process.on("uncaughtException", console.error);
 
   const GRAPHQL_REQUEST_RETRY = 5;
   const JWT_SECRET_KEY = Configuration.get("JWT_SECRET_KEY");
-  const headlessGraphQLCLient = new HeadlessGraphQLClient(
-    GRAPHQL_API_ENDPOINT,
-    GRAPHQL_REQUEST_RETRY,
-    JWT_SECRET_KEY
-  );
   const stageGraphQLClients = STAGE_HEADLESSES.map(
     (endpoint) =>
       new HeadlessGraphQLClient(endpoint, GRAPHQL_REQUEST_RETRY, JWT_SECRET_KEY)
@@ -253,6 +249,31 @@ process.on("uncaughtException", console.error);
   const integration: Integration = new PagerDutyIntegration(
     PAGERDUTY_ROUTING_KEY
   );
+  // Chain reads fail over to GRAPHQL_FALLBACK_ENDPOINTS when the primary node
+  // lacks TxExecution records (e.g. after a volume clone). The JWT is not
+  // sent to fallbacks unless GRAPHQL_FALLBACK_SEND_AUTH is explicitly true.
+  const FALLBACK_SEND_AUTH = Configuration.get(
+    "GRAPHQL_FALLBACK_SEND_AUTH",
+    false,
+    "boolean"
+  );
+  const headlessGraphQLCLient = createFailoverClient({
+    primary: new HeadlessGraphQLClient(
+      GRAPHQL_API_ENDPOINT,
+      GRAPHQL_REQUEST_RETRY,
+      JWT_SECRET_KEY
+    ),
+    fallbackEndpoints: Configuration.get("GRAPHQL_FALLBACK_ENDPOINTS", false),
+    createFallback: (endpoint) =>
+      new HeadlessGraphQLClient(
+        endpoint,
+        GRAPHQL_REQUEST_RETRY,
+        JWT_SECRET_KEY,
+        FALLBACK_SEND_AUTH
+      ),
+    alert: (summary, details, severity) =>
+      integration.error(summary, details, severity),
+  });
   const provider = new PrimaryRpcProvider(
     KMS_PROVIDER_URL,
     KMS_PROVIDER_SUB_URL,
