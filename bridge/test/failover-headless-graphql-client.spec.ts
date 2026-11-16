@@ -166,6 +166,10 @@ describe("FailoverHeadlessGraphQLClient", () => {
     await expect(ask(client)).resolves.toEqual([]);
     const summaries = alert.mock.calls.map(([s]) => s as string);
     expect(summaries.some((s) => s.includes("did not report"))).toBe(true);
+    const unreported = alert.mock.calls.find(([s]) =>
+      s.includes("did not report")
+    );
+    expect(unreported[2]).toBe("warning");
   });
 
   it("reports failover usage at most once per cooldown with a running count", async () => {
@@ -184,6 +188,8 @@ describe("FailoverHeadlessGraphQLClient", () => {
     await ask(client);
     expect(usage()).toHaveLength(1);
     expect(usage()[0][1].blocksSinceLastReport).toBe(1);
+    // informational: must not page anyone
+    expect(usage()[0][2]).toBe("info");
 
     now = 1500;
     await ask(client);
@@ -205,6 +211,8 @@ describe("FailoverHeadlessGraphQLClient", () => {
     await expect(ask(client)).rejects.toBe(boom);
     expect(fallback.getNCGTransferredEvents).not.toHaveBeenCalled();
     expect(alert).toHaveBeenCalledTimes(1);
+    // transient error: node monitoring covers outages, so only "info"
+    expect(alert.mock.calls[0][2]).toBe("info");
   });
 
   it("rethrows (never skips) and alerts once per block when every node fails", async () => {
@@ -222,6 +230,8 @@ describe("FailoverHeadlessGraphQLClient", () => {
     expect(alert).toHaveBeenCalledTimes(1);
     const [summary, details] = alert.mock.calls[0];
     expect(summary).toContain(BLOCK_HASH);
+    // deposits cannot be processed by any node: needs a human
+    expect(alert.mock.calls[0][2]).toBe("warning");
     expect(details.failures.primary).toContain("TxExecution");
     expect(details.failures.fallback).toContain("down");
 

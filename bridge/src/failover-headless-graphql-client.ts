@@ -5,6 +5,7 @@ import { NCGTransferredEvent } from "./types/ncg-transferred-event";
 import { BlockTransaction } from "./types/block-transaction";
 import { BlockHash } from "./types/block-hash";
 import { TxId } from "./types/txid";
+import { Severity } from "./integrations";
 import { verifyFallbackEvents } from "./fallback-event-verifier";
 
 /**
@@ -40,7 +41,8 @@ function describe(error: unknown): string {
 
 export type FailoverAlert = (
   summary: string,
-  details: Record<string, any>
+  details: Record<string, any>,
+  severity: Severity
 ) => void;
 
 export interface FailoverOptions {
@@ -114,9 +116,14 @@ export class FailoverHeadlessGraphQLClient implements IHeadlessGraphQLClient {
       ) {
         // Nothing to fail over to: the caller will retry this same
         // block (cursor not advanced). Make the stall visible.
-        this.raiseStuckAlert(blockHash, {
-          [this._primary.endpoint]: describe(primaryError),
-        });
+        // Only "info" unless the primary is missing TxExecution: a
+        // transient error (ECONNREFUSED, timeout) is covered by node
+        // monitoring, and the bridge simply retries the block.
+        this.raiseStuckAlert(
+          blockHash,
+          { [this._primary.endpoint]: describe(primaryError) },
+          isMissingTxExecutionError(primaryError) ? "warning" : "info"
+        );
         throw primaryError;
       }
 
@@ -150,7 +157,7 @@ export class FailoverHeadlessGraphQLClient implements IHeadlessGraphQLClient {
         }
       }
 
-      this.raiseStuckAlert(blockHash, failures);
+      this.raiseStuckAlert(blockHash, failures, "warning");
       throw primaryError;
     }
   }
@@ -182,7 +189,8 @@ export class FailoverHeadlessGraphQLClient implements IHeadlessGraphQLClient {
       this.alertOnce(
         `unreported:${blockHash}`,
         `Fallback did not report ${result.unreportedTxIds.length} transfer(s) to the bridge in block ${blockHash} (failed transactions, or omitted deposits?). Please review manually.`,
-        { blockHash, txIds: result.unreportedTxIds }
+        { blockHash, txIds: result.unreportedTxIds },
+        "warning"
       );
     }
     return null;
@@ -208,13 +216,15 @@ export class FailoverHeadlessGraphQLClient implements IHeadlessGraphQLClient {
     this._failoverCountAtLastAlert = this._failoverCount;
     this.send(
       `Bridge is reading NCG transfers from fallback ${endpoint}: the primary ${this._primary.endpoint} lacks TxExecution records (${since} block(s) since the last report)`,
-      { blockHash, endpoint, blocksSinceLastReport: since }
+      { blockHash, endpoint, blocksSinceLastReport: since },
+      "info"
     );
   }
 
   private raiseStuckAlert(
     blockHash: BlockHash,
-    failures: Record<string, string>
+    failures: Record<string, string>,
+    severity: Severity
   ): void {
     console.error(
       `[FailoverHeadlessGraphQLClient] no node could serve block ${blockHash}`,
@@ -223,14 +233,16 @@ export class FailoverHeadlessGraphQLClient implements IHeadlessGraphQLClient {
     this.alertOnce(
       `stuck:${blockHash}`,
       `Bridge may be stuck: no node could serve transferNCGHistories for block ${blockHash}`,
-      { blockHash, failures }
+      { blockHash, failures },
+      severity
     );
   }
 
   private alertOnce(
     key: string,
     summary: string,
-    details: Record<string, any>
+    details: Record<string, any>,
+    severity: Severity
   ): void {
     const now = this._now();
     const last = this._lastAlertAt.get(key);
@@ -238,12 +250,16 @@ export class FailoverHeadlessGraphQLClient implements IHeadlessGraphQLClient {
       return;
     }
     this._lastAlertAt.set(key, now);
-    this.send(summary, details);
+    this.send(summary, details, severity);
   }
 
-  private send(summary: string, details: Record<string, any>): void {
+  private send(
+    summary: string,
+    details: Record<string, any>,
+    severity: Severity
+  ): void {
     try {
-      this._alert?.(summary, details);
+      this._alert?.(summary, details, severity);
     } catch (alertError) {
       console.error(
         "[FailoverHeadlessGraphQLClient] alert failed:",

@@ -271,7 +271,8 @@ process.on("uncaughtException", console.error);
         JWT_SECRET_KEY,
         FALLBACK_SEND_AUTH
       ),
-    alert: (summary, details) => integration.error(summary, details),
+    alert: (summary, details, severity) =>
+      integration.error(summary, details, severity),
   });
   const provider = new PrimaryRpcProvider(
     KMS_PROVIDER_URL,
